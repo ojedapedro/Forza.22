@@ -77,13 +77,30 @@ async function startServer() {
   app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
   app.all('/api/exchange-rate', exchangeRateHandler);
 
-  // Global Error Handler
+  // global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('💥 Unhandled Server Error:', err);
     res.status(500).json({ 
       error: 'Error interno del servidor', 
       details: err.message
     });
+  });
+
+  // Explicitly serve Service Worker and Manifest to avoid SPA fallback issues
+  app.get('/service-worker.js', (req, res) => {
+    const swPath = process.env.NODE_ENV === 'production'
+      ? path.join(process.cwd(), 'dist', 'service-worker.js')
+      : path.join(process.cwd(), 'public', 'service-worker.js');
+    res.setHeader('Content-Type', 'application/javascript');
+    res.sendFile(swPath);
+  });
+
+  app.get('/manifest.json', (req, res) => {
+    const manifestPath = process.env.NODE_ENV === 'production'
+      ? path.join(process.cwd(), 'dist', 'manifest.json')
+      : path.join(process.cwd(), 'public', 'manifest.json');
+    res.setHeader('Content-Type', 'application/json');
+    res.sendFile(manifestPath);
   });
 
   // Vite middleware

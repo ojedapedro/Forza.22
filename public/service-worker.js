@@ -1,8 +1,8 @@
 
 // service-worker.js
 
-const CACHE_STATIC_NAME = 'fiscal-static-v5';
-const CACHE_API_NAME = 'fiscal-api-v2';
+const CACHE_STATIC_NAME = 'fiscal-static-v6';
+const CACHE_API_NAME = 'fiscal-api-v3';
 
 // Recursos críticos para que la app arranque (App Shell)
 const STATIC_ASSETS = [
