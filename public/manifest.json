@@ -1,0 +1,51 @@
+
+{
+  "short_name": "Forza 22",
+  "name": "Forza 22",
+  "description": "Sistema de gestión y auditoría fiscal para redes de tiendas.",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1280&q=80",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Panel de Control Ejecutivo"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80",
+      "sizes": "600x1000",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Gestión Móvil"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cargar Pago",
+      "url": "/?action=new_payment",
+      "icons": [{ "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Auditoría",
+      "url": "/?action=approvals",
+      "icons": [{ "src": "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png", "sizes": "192x192" }]
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "orientation": "portrait-primary"
+}

@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Forza 22</title>
+    <!-- Favicon dinámico -->
+    <link rel="icon" type="image/jpeg" href="https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Registro de Service Worker para PWA y Notificaciones -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('SW: Registrado correctamente', reg.scope))
+            .catch(err => console.error('SW: Error al registrar', err));
+        });
+      }
+
+      window.addEventListener('error', function(e) {
+        console.error("Global Error caught:", e.message);
+        const root = document.getElementById('root');
+        if (root && root.childNodes.length === 0) {
+           // Si hay error y el root está vacío, mostramos el error en pantalla
+           setTimeout(() => {
+             if(root.childNodes.length === 0) {
+               document.body.innerHTML = '<div style="color:red; padding:20px;"><h1>Error de Carga</h1><p>'+e.message+'</p></div>';
+             }
+           }, 1000);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- PUNTO DE ENTRADA CRÍTICO -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+      

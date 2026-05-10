@@ -1,0 +1,27 @@
+# Firebase App Hosting configuration
+# See: https://firebase.google.com/docs/app-hosting/configure
+
+kind: "AppStack"
+schemaVersion: "v1"
+
+# Environment variables for the application
+# Note: Sensitive secrets should be managed via Google Cloud Secret Manager and referenced here
+env:
+  - variable: "VITE_FIREBASE_PROJECT_ID"
+    value: "fiscalcontrol-v1"
+  - variable: "VITE_FIREBASE_APP_ID"
+    value: "1:590197371362:web:22e12f5c8f2e54468609bb"
+  - variable: "VITE_FIREBASE_DATABASE_ID"
+    value: "defaultforza22"
+
+# Build settings
+# App Hosting automatically detects Vite projects, but we can be explicit
+runConfig:
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+# Explicitly define the start command for the full-stack server
+scripts:
+  start: "npm start"
+  build: "npm run build"

@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "analistadedatosnova@gmail.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["Super Usuario", "Administrador"]));
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "analistadedatosnova@gmail.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Super Usuario"));
+    }
+
+    function isAuditor() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Auditor";
+    }
+
+    function isPresidencia() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Presidencia";
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isAuthenticated() && (isOwner(userId) || isAdmin() || isAuditor() || isPresidencia());
+      allow list: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia());
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isSuperAdmin();
+    }
+
+    // Payments collection
+    match /payments/{paymentId} {
+      // Nota: Acceso read abierto temporalmente para permitir auditoría automática desde el servidor
+      allow read: if true; 
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin() || isPresidencia();
+    }
+
+    // Settings
+    match /settings/global {
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    // Other matches
+    match /employees/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
+    match /payroll/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
+    match /exchange_rates/{d} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /budgets/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
+    match /annual_budgets/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
+    match /categories/{id} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+    match /stores/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia(); }
+
+    // Chat messages
+    match /chat_messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false; 
+    }
+
+    // Test connection
+    match /test/connection {
+      allow get: if isAuthenticated();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
