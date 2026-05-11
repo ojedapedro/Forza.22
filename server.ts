@@ -104,7 +104,10 @@ async function startServer() {
   });
 
   // Vite middleware
-  if (process.env.NODE_ENV !== 'production') {
+  const isProd = process.env.NODE_ENV === 'production';
+  console.log(`🚀 [Server] Modo: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
+
+  if (!isProd) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -115,6 +118,12 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*all', (req, res) => {
+      // Si la petición parece ser un activo (tiene extensión) y no fue capturada por express.static, 
+      // devolvemos 404 en lugar de index.html para evitar errores de tipo MIME
+      if (req.path.includes('.') && !req.path.endsWith('.html')) {
+        console.warn(`⚠️ [Server] 404 Activo no encontrado: ${req.path}`);
+        return res.status(404).json({ error: 'Asset not found' });
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

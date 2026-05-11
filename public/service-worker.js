@@ -1,8 +1,8 @@
 
 // service-worker.js
 
-const CACHE_STATIC_NAME = 'fiscal-static-v6';
-const CACHE_API_NAME = 'fiscal-api-v3';
+const CACHE_STATIC_NAME = 'fiscal-static-v7';
+const CACHE_API_NAME = 'fiscal-api-v4';
 
 // Recursos críticos para que la app arranque (App Shell)
 const STATIC_ASSETS = [
@@ -87,19 +87,25 @@ self.addEventListener('fetch', (event) => {
 
   // C) ESTRATEGIA STALE-WHILE-REVALIDATE (Activos Estáticos)
   // Sirve rápido del caché, actualiza en background.
-  // Aplica para archivos locales y CDNs (JS, CSS, Fuentes, Imágenes)
+  // Solo cacheamos si la respuesta es exitosa y tiene un tipo válido de activo
   if (
     event.request.destination === 'script' ||
     event.request.destination === 'style' ||
     event.request.destination === 'image' ||
     event.request.destination === 'font' ||
-    url.origin === self.location.origin // Archivos locales
+    (url.origin === self.location.origin && (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.png') || url.pathname.endsWith('.jpg')))
   ) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         const fetchPromise = fetch(event.request).then((networkResponse) => {
-          // Validar respuesta antes de cachear
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic' || networkResponse.type === 'cors') {
+          // Validar respuesta antes de cachear: debe ser 200 y NO ser un HTML (error fallback)
+          const contentType = networkResponse.headers.get('content-type');
+          if (
+            networkResponse && 
+            networkResponse.status === 200 && 
+            contentType && !contentType.includes('text/html') &&
+            (networkResponse.type === 'basic' || networkResponse.type === 'cors')
+          ) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_STATIC_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
@@ -107,11 +113,10 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         }).catch((err) => {
-           // Fallo silencioso en background update
-           // console.log('SW: Fallo actualización background', err);
+          // Fallo silencioso en background update
         });
 
-        // Devolver caché si existe, sino esperar a la red
+        // Devolver caché si existe
         return cachedResponse || fetchPromise;
       })
     );

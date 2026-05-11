@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Import the Firebase configuration
@@ -15,7 +15,10 @@ export const auth = getAuth(app);
 const dbId = (firebaseConfig as any).firestoreDatabaseId;
 console.log(`[Firebase] Initializing Firestore for database: ${dbId || '(default)'}`);
 
-export const db = getFirestore(app, dbId);
+// Force long polling for stability in the proxy environment
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, dbId);
 
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
