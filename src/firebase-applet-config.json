@@ -3,7 +3,7 @@
   "appId": "1:590197371362:web:22e12f5c8f2e54468609bb",
   "apiKey": "AIzaSyD2uoiu8xgEodAlOXmQGUe3gk4UJONlyY0",
   "authDomain": "fiscalcontrol-v1.firebaseapp.com",
-  "firestoreDatabaseId": "forza22db",
+  "firestoreDatabaseId": "defaultforza22",
   "storageBucket": "fiscalcontrol-v1.firebasestorage.app",
   "messagingSenderId": "590197371362",
   "measurementId": ""

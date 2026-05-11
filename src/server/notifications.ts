@@ -9,7 +9,7 @@ import path from 'path';
 // Initialize Firebase Client safely (Bypasses IAM issues by using REST/Web channel with open rules)
 let db: any = null;
 try {
-  const configPath = path.resolve(process.cwd(), 'src/firebase-applet-config.json');
+  const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
   const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
   const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();

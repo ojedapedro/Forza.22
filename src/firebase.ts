@@ -10,7 +10,12 @@ import firebaseConfig from './firebase-applet-config.json';
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Respect the named database if it's provided in the config
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+
+// Use the database ID from config
+const dbId = (firebaseConfig as any).firestoreDatabaseId;
+console.log(`[Firebase] Initializing Firestore for database: ${dbId || '(default)'}`);
+
+export const db = getFirestore(app, dbId);
+
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();

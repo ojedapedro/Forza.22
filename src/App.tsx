@@ -200,7 +200,9 @@ function App({}: AppProps = {}) {
   useEffect(() => {
     if (isAuthenticated && currentUser) {
       setCurrentView(getInitialView(currentUser.role));
-      loadData();
+      loadData().catch(err => {
+        console.error("Critical error in loadData:", err);
+      });
     }
   }, [isAuthenticated, currentUser]);
 
@@ -527,9 +529,16 @@ function App({}: AppProps = {}) {
         const message = error.message || "";
         if (message.startsWith('{"error":')) {
           const firestoreInfo = JSON.parse(message);
-          errorMsg = `❌ Error Firestore (${firestoreInfo.operationType}) en ${firestoreInfo.path || 'desconocido'}: ${firestoreInfo.error}`;
+          const isOffline = firestoreInfo.error.includes('the client is offline');
+          if (isOffline) {
+            errorMsg = `❌ Error: El cliente está offline. Verifique que la base de datos "${firestoreInfo.path?.includes('forza22bd') ? 'forza22bd' : 'seleccionada'}" exista y sea accesible.`;
+          } else {
+            errorMsg = `❌ Error Firestore (${firestoreInfo.operationType}) en ${firestoreInfo.path || 'desconocido'}: ${firestoreInfo.error}`;
+          }
         } else if (message.includes('permission-denied')) {
           errorMsg = '❌ Error de permisos en Firestore. Verifique las reglas de seguridad.';
+        } else if (message.includes('the client is offline')) {
+           errorMsg = '❌ Error: El cliente está offline. Esto puede deberse a un ID de base de datos incorrecto.';
         }
       } catch (e) {
         // Not a JSON error
@@ -746,18 +755,40 @@ function App({}: AppProps = {}) {
             (isUpdate && originalPayment?.status === PaymentStatus.REJECTED) || 
             (isUpdate && originalPayment?.status === PaymentStatus.PENDING && newStatus === PaymentStatus.UPLOADED);
 
-        // Create the payment object
+        // Create the payment object - Whitelist approach to avoid polluting with large state objects
         const paymentToSave: Payment = {
           ...(originalPayment || {}),
-          ...paymentData,
           id: paymentId,
+          storeId: paymentData.storeId,
+          category: paymentData.category,
+          amount: paymentData.amount,
+          dueDate: paymentData.dueDate,
+          paymentDate: paymentData.paymentDate,
+          daysToExpire: paymentData.daysToExpire,
+          frequency: paymentData.frequency,
+          specificType: paymentData.specificType,
+          notes: paymentData.notes,
+          originalBudget: paymentData.originalBudget,
+          isOverBudget: paymentData.isOverBudget,
+          documentDate: paymentData.documentDate,
+          documentAmount: paymentData.documentAmount,
+          documentName: paymentData.documentName,
+          proposedAmount: paymentData.proposedAmount,
+          proposedPaymentDate: paymentData.proposedPaymentDate,
+          proposedDueDate: paymentData.proposedDueDate,
+          proposedDaysToExpire: paymentData.proposedDaysToExpire,
+          proposedFrequency: paymentData.proposedFrequency,
+          proposedStatus: paymentData.proposedStatus,
+          proposedJustification: paymentData.proposedJustification,
+          dueDateRate: paymentData.dueDateRate,
+          dueDateAmountBs: paymentData.dueDateAmountBs,
           storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
           userId: currentUser?.id || originalPayment?.userId || 'U-UNK',
           status: newStatus,
-          rejectionReason: '',
+          rejectionReason: isUpdate && originalPayment?.status === PaymentStatus.REJECTED ? '' : (originalPayment?.rejectionReason || ''),
           submittedDate: shouldUpdateSubmittedDate ? new Date().toISOString() : (originalPayment?.submittedDate || new Date().toISOString()),
           history: isUpdate 
-            ? [...(originalPayment?.history || []), log]
+            ? [...(originalPayment?.history || []), log].slice(-50)
             : [log],
           attachments: attachments,
           // Mantener legacy fields por compatibilidad
@@ -765,9 +796,11 @@ function App({}: AppProps = {}) {
           receiptUrl2: attachments[1] || undefined,
         };
         
-        if ((paymentToSave as any).file) delete (paymentToSave as any).file;
-        if ((paymentToSave as any).file2) delete (paymentToSave as any).file2;
-        if ((paymentToSave as any).files) delete (paymentToSave as any).files;
+        // Final safety check: remove any keys that might have been spread from originalPayment but shouldn't be there
+        const forbiddenKeys = ['file', 'file2', 'files', 'previewUrls', 'blob', 'dataUrl'];
+        forbiddenKeys.forEach(key => {
+          if ((paymentToSave as any)[key]) delete (paymentToSave as any)[key];
+        });
 
         console.log("💾 Guardando pago en Firestore...");
         if (isUpdate) {

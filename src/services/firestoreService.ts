@@ -13,7 +13,10 @@ import {
   onSnapshot,
   getDocFromServer,
   limit,
-  startAfter
+  startAfter,
+  terminate,
+  disableNetwork,
+  enableNetwork
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
@@ -146,6 +149,11 @@ function invalidateCache(key: string) {
 // Test connection
 export async function testConnection() {
   if (IS_OFFLINE_MODE) return;
+  
+  const firebaseConfig = await import('../firebase-applet-config.json');
+  const activeDbId = firebaseConfig.default.firestoreDatabaseId || '(default)';
+  console.log(`[Firestore] Testing connection to database: ${activeDbId}`);
+
   if (!auth.currentUser) {
     console.log("Firestore connection test skipped: User not authenticated.");
     return;
@@ -155,19 +163,54 @@ export async function testConnection() {
   if (getFromCache('test_conn')) return;
 
   try {
-    // We use a path that should be public according to our rules (if deployed)
+    // We use a path that should exist or be reachable
     const docRef = doc(db, 'settings', 'global');
-    // Using default getDoc instead of getDocFromServer to use cache if available
-    const docSnap = await getDoc(docRef);
+    
+    // Attempt a check
+    try {
+      // Use getDoc instead of getDocFromServer to allow local cache if network is flaky
+      await getDoc(docRef);
+    } catch (e: any) {
+      const isOfflineMsg = e.message?.includes('offline') || e.message?.includes('unavailable');
+      if (isOfflineMsg) {
+        console.warn(`[Firestore] Database "${activeDbId}" appears unreachable (offline/unavailable).`);
+        console.warn("If you recently created this database, it might still be provisioning.");
+        console.warn("If this persists, check if the name is correct in your Firebase console.");
+        
+        // Attempt a network reset once
+        try {
+          await disableNetwork(db);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await enableNetwork(db);
+          console.log("[Firestore] Network reset complete.");
+        } catch (resetErr) {
+          console.warn("[Firestore] Network reset failed", resetErr);
+        }
+      } else {
+        throw e;
+      }
+    }
+
     setToCache('test_conn', true);
-    console.log("Firestore connection successful.");
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('permission-denied')) {
-      console.error("Firestore connection test failed: Missing or insufficient permissions. Please ensure that firestore.rules have been deployed to your Firebase project.");
-    } else if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Firestore connection test failed: The client is offline.");
+    console.log(`Firestore connection to ${activeDbId} successful.`);
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error);
+    console.group(`[Firestore Connection Error]`);
+    console.error(`Error Message: ${errorMsg}`);
+    console.error(`Database: ${activeDbId}`);
+    console.error(`Full Error Object:`, error);
+    console.groupEnd();
+    
+    if (errorMsg.includes('permission-denied')) {
+      console.error(`Firestore connection test failed: Missing or insufficient permissions on database "${activeDbId}".`);
+    } else if (errorMsg.includes('the client is offline') || errorMsg.includes('unavailable')) {
+      console.error(`CRITICAL: Firestore connection test failed for database "${activeDbId}".
+Possible causes:
+1. The database ID "${activeDbId}" does not exist in project "${firebaseConfig.default.projectId}".
+2. The database is still being provisioned.
+Try changing the "firestoreDatabaseId" back to "defaultforza22" if this error persists.`);
     } else {
-      console.error("Firestore connection test failed with an unexpected error:", error);
+      console.error(`Firestore connection test failed with an unexpected error on database "${activeDbId}":`, error);
     }
   }
 }
@@ -280,7 +323,18 @@ export const firestoreService = {
     if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payments/${payment.id}`;
     try {
-      await setDoc(doc(db, 'payments', payment.id), cleanObject(payment));
+      const cleaned = cleanObject(payment);
+      // Log object size in KB for debugging
+      const sizeStr = JSON.stringify(cleaned);
+      const sizeKB = sizeStr.length / 1024;
+      console.log(`Creating payment ${payment.id}. Size: ${sizeKB.toFixed(2)} KB`);
+      
+      if (sizeKB > 1000) {
+        console.error("CRITICAL: Payment object is too large for Firestore!", cleaned);
+        throw new Error(`El documento de pago es demasiado pesado (${sizeKB.toFixed(2)} KB). Por favor, reduzca el tamaño de las notas o adjuntos.`);
+      }
+
+      await setDoc(doc(db, 'payments', payment.id), cleaned);
       invalidateCache('payments');
       return { status: 'success' };
     } catch (error) {
@@ -292,7 +346,18 @@ export const firestoreService = {
     if (IS_OFFLINE_MODE) return { status: 'success' };
     const path = `payments/${payment.id}`;
     try {
-      await updateDoc(doc(db, 'payments', payment.id), cleanObject(payment));
+      const cleaned = cleanObject(payment);
+      // Log object size in KB for debugging
+      const sizeStr = JSON.stringify(cleaned);
+      const sizeKB = sizeStr.length / 1024;
+      console.log(`Updating payment ${payment.id}. Size: ${sizeKB.toFixed(2)} KB`);
+
+      if (sizeKB > 1000) {
+        console.error("CRITICAL: Payment object is too large for Firestore!", cleaned);
+        throw new Error(`El documento de pago es demasiado pesado (${sizeKB.toFixed(2)} KB). Por favor, reduzca el tamaño de las notas o adjuntos.`);
+      }
+
+      await updateDoc(doc(db, 'payments', payment.id), cleaned);
       invalidateCache('payments');
       return { status: 'success' };
     } catch (error) {
