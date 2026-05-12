@@ -11,6 +11,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
+      // Priorizar el bypass de analistadedatosnova@gmail.com
       return isAuthenticated() && 
         (request.auth.token.email == "analistadedatosnova@gmail.com" ||
          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -47,7 +48,7 @@ service cloud.firestore {
 
     // Payments collection
     match /payments/{paymentId} {
-      // Nota: Acceso read abierto temporalmente para permitir auditoría automática desde el servidor
+      // Read access open for audit
       allow read: if true; 
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() && (isAdmin() || isAuditor() || isPresidencia() || resource.data.userId == request.auth.uid);
@@ -60,7 +61,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Other matches
+    // Employees & Payroll
     match /employees/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
     match /payroll/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
     match /exchange_rates/{d} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
@@ -68,6 +69,8 @@ service cloud.firestore {
     match /annual_budgets/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia() || isAuditor(); }
     match /categories/{id} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
     match /stores/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isPresidencia(); }
+    match /invoices/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
+    match /clients/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
 
     // Chat messages
     match /chat_messages/{messageId} {

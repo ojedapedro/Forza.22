@@ -33,25 +33,35 @@
 
       // Detector de errores globales para capturar fallos de carga de assets (404 / Chunk Error)
       window.addEventListener('error', function(e) {
-        // Ignorar errores que no son de carga de scripts
+        // Ignorar errores que no son de carga de scripts/estilos
         const isScriptError = e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK');
-        const isChunkError = e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk'));
+        const isChunkError = e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk') || e.message.includes('Failed to fetch dynamically imported module'));
         
         if (isScriptError || isChunkError) {
           console.error("🚀 [Error Recovery] Fallo crítico al cargar un recurso:", e);
           
-          // Mostrar mensaje de recuperación
+          // Verificar si ya intentamos recargar recientemente para evitar loops
+          const lastReload = sessionStorage.getItem('last_asset_reload');
+          const now = Date.now();
+          if (!lastReload || now - parseInt(lastReload) > 10000) {
+            sessionStorage.setItem('last_asset_reload', now.toString());
+            console.warn("🔄 [Error Recovery] Detectado error de asset. Intentando recarga forzada...");
+            window.location.reload(true);
+            return;
+          }
+
+          // Si ya recargamos y sigue fallando, mostrar mensaje
           const root = document.getElementById('root');
-          if (root && root.innerHTML === "") {
+          if (root) {
              root.innerHTML = `
-              <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family: sans-serif; background:#f8fafc;">
+              <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family: sans-serif; background:#f8fafc; position:fixed; inset:0; z-index:9999;">
                 <div style="color:#ef4444; margin-bottom:20px;">
                   <svg width="60" height="60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 </div>
-                <h1 style="font-size:24px; color:#1e293b; margin-bottom:8px;">Versión Desactualizada</h1>
-                <p style="color:#64748b; max-width:400px; line-height:1.5;">La aplicación se ha actualizado en el servidor. Es necesario recargar para obtener la versión más reciente.</p>
+                <h1 style="font-size:24px; color:#1e293b; margin-bottom:8px;">Error de Versión</h1>
+                <p style="color:#64748b; max-width:400px; line-height:1.5;">La aplicación se ha actualizado. Por favor, limpie la caché de su navegador o use una ventana de incógnito si el error persiste.</p>
                 <button onclick="window.location.reload(true)" style="margin-top:20px; padding:12px 24px; background:#2563eb; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                  Actualizar Ahora
+                  Forzar Recarga
                 </button>
               </div>
              `;

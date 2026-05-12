@@ -125,7 +125,12 @@ async function startServer() {
         return res.status(404).set('Cache-Control', 'no-store').json({ error: 'Asset not found', path: req.path });
       }
       // No cachear el index.html para evitar que el navegador guarde referencias a assets viejos
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
+      });
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
