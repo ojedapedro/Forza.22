@@ -455,7 +455,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !dayPayments.some(p => p.status === PaymentStatus.PAID) && !hasOverdue && !hasPending && 
                         <div className="w-2 h-2 rounded-full bg-blue-500" title="Aprobado"></div>
                     }
-                    {dayBudgets.length > 0 && <div className="w-2 h-2 rounded-full bg-cyan-400" title="Presupuesto Asignado"></div>}
+                    {dayBudgets.length > 0 && (
+                        <div 
+                          className={`w-2 h-2 rounded-full ${dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'bg-amber-400 animate-pulse' : 'bg-cyan-400'}`} 
+                          title={dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'Propuesta de Pago' : 'Presupuesto Asignado'}
+                        ></div>
+                    )}
                 </div>
 
                 {/* Indicadores de Reglas Fiscales (Alcaldía y Nómina) */}
@@ -873,6 +878,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Obligación Nómina</div>
                 <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Propuesta de Pago</div>
               </>
             ) : (
               <>
@@ -1062,23 +1068,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <h3 className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center gap-2">
                         <Target size={12} /> Presupuestos Asignados
                     </h3>
-                    {dayEvents.budgets.map((budget) => (
-                        <div key={budget.id} className="p-4 rounded-xl border border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-900/10 group relative">
-                            <button 
-                                onClick={() => handleDeleteBudget(budget.id)}
-                                className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <X size={14} />
-                            </button>
-                            <div className="flex justify-between items-start mb-1 pr-4">
-                                <span className="text-cyan-800 dark:text-cyan-200 font-bold text-sm">{budget.title}</span>
-                            </div>
-                            <p className="text-xs text-cyan-600 dark:text-cyan-400 mb-2">{budget.category}</p>
-                            <div className="font-mono text-lg font-bold text-cyan-700 dark:text-cyan-300">
-                                ${budget.amount.toLocaleString()}
-                            </div>
-                        </div>
-                    ))}
+                    {dayEvents.budgets.map((budget) => {
+                        const isProposal = budget.title.includes('[PROPUESTA]');
+                        return (
+                          <div key={budget.id} className={`p-4 rounded-xl border group relative ${
+                              isProposal 
+                                ? 'border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10' 
+                                : 'border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-900/10'
+                          }`}>
+                              <button 
+                                  onClick={() => handleDeleteBudget(budget.id)}
+                                  className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                  <X size={14} />
+                              </button>
+                              <div className="flex justify-between items-start mb-1 pr-4">
+                                  <span className={`font-bold text-sm ${isProposal ? 'text-amber-800 dark:text-amber-200' : 'text-cyan-800 dark:text-cyan-200'}`}>
+                                    {budget.title}
+                                  </span>
+                                  {isProposal && (
+                                    <span className="text-[9px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-black">PROPUESTA</span>
+                                  )}
+                              </div>
+                              <p className={`text-xs mb-2 ${isProposal ? 'text-amber-600 dark:text-amber-400' : 'text-cyan-600 dark:text-cyan-400'}`}>{budget.category}</p>
+                              <div className={`font-mono text-lg font-bold ${isProposal ? 'text-amber-700 dark:text-amber-300' : 'text-cyan-700 dark:text-cyan-300'}`}>
+                                  ${budget.amount.toLocaleString()}
+                              </div>
+                              {budget.notes && (
+                                <p className="text-[10px] mt-2 opacity-70 italic">{budget.notes}</p>
+                              )}
+                          </div>
+                        );
+                    })}
                     <div className="text-right text-xs font-bold text-cyan-700 dark:text-cyan-400">
                         Total Presupuestado: ${totalBudgetForDay.toLocaleString()}
                     </div>

@@ -815,6 +815,33 @@ function App({}: AppProps = {}) {
             // Background notification
             notificationService.notifyNewPayment(paymentToSave, users, settings);
         }
+
+        // --- INTEGRACIÓN CON PLANIFICACIÓN ANUAL (PRESUPUESTO) ---
+        // Si hay una propuesta, la registramos también en el presupuesto para visualización en calendario
+        if (paymentToSave.proposedAmount !== undefined || paymentToSave.proposedDueDate) {
+          const proposalBudgetId = `BUD-PROP-${paymentToSave.id}`;
+          const proposalBudget: BudgetEntry = {
+              id: proposalBudgetId,
+              storeId: paymentToSave.storeId,
+              date: paymentToSave.proposedDueDate || paymentToSave.dueDate,
+              title: `[PROPUESTA] ${paymentToSave.specificType}`,
+              amount: paymentToSave.proposedAmount ?? paymentToSave.amount,
+              category: paymentToSave.category,
+              notes: `Propuesta de: ${paymentToSave.storeName}. Justificación: ${paymentToSave.proposedJustification || 'Sin justificación'}`
+          };
+          
+          try {
+              await firestoreService.createBudget(proposalBudget);
+              setBudgets(prev => {
+                  const filtered = prev.filter(b => b.id !== proposalBudgetId);
+                  return [...filtered, proposalBudget];
+              });
+              console.log("📊 Propuesta sincronizada con Planificación Anual");
+          } catch (budgetErr) {
+              console.error("Error sincronizando propuesta con presupuesto:", budgetErr);
+          }
+        }
+
         console.log("✨ Proceso completado exitosamente.");
     } catch (error) {
         console.error('❌ Error en handleNewPayment:', error);
@@ -885,6 +912,33 @@ function App({}: AppProps = {}) {
             await firestoreService.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
+
+            // --- SINCRONIZACIÓN CON PRESUPUESTO AL APROBAR ---
+            // Si existía una entrada de presupuesto de "Propuesta", la actualizamos a una real o la eliminamos
+            // ya que el pago aprobado ahora es la realidad.
+            const proposalBudgetId = `BUD-PROP-${id}`;
+            if (budgets.find(b => b.id === proposalBudgetId)) {
+                // Si el auditor cambió el monto o fecha, podríamos querer reflejarlo en el presupuesto final
+                // Pero generalmente el presupuesto es la PLANIFICACIÓN.
+                // Registramos el cambio aprobado como una entrada de presupuesto definitiva
+                const finalBudgetEntry: BudgetEntry = {
+                    id: `BUD-APR-${id}`, // ID definitivo
+                    storeId: updatedPayment.storeId,
+                    date: updatedPayment.dueDate,
+                    title: `[APROBADO] ${updatedPayment.specificType}`,
+                    amount: updatedPayment.amount,
+                    category: updatedPayment.category,
+                    notes: `Aprobado por auditor. Ref: ${id}`
+                };
+                
+                await firestoreService.createBudget(finalBudgetEntry);
+                await firestoreService.deleteBudget(proposalBudgetId);
+                
+                setBudgets(prev => [
+                    ...prev.filter(b => b.id !== proposalBudgetId && b.id !== finalBudgetEntry.id),
+                    finalBudgetEntry
+                ]);
+            }
 
             // Notificar al creador del pago
             notificationService.notifyPaymentApproved(updatedPayment, users, settings);
@@ -999,6 +1053,13 @@ function App({}: AppProps = {}) {
             await firestoreService.updatePayment(updatedPayment);
             setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
             setNotification(`Pago ${id} Rechazado y Sincronizado`);
+
+            // --- ELIMINAR PROPUESTA DEL PRESUPUESTO SI SE RECHAZA ---
+            const proposalBudgetId = `BUD-PROP-${id}`;
+            if (budgets.find(b => b.id === proposalBudgetId)) {
+                await firestoreService.deleteBudget(proposalBudgetId);
+                setBudgets(prev => prev.filter(b => b.id !== proposalBudgetId));
+            }
 
             // Notificar al creador del pago
             notificationService.notifyPaymentRejected(updatedPayment, reason, users, settings);
