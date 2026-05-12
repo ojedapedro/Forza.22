@@ -166,7 +166,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
     setConfirmModal({
       isOpen: true,
       title: '¿Eliminar usuario?',
-      message: `¿Estás seguro de que deseas eliminar al usuario ${user?.name || ''}? Esta acción no se puede deshacer.`,
+      message: `¿Estás seguro de que deseas eliminar al usuario ${user?.name || ''}? NOTA: Esta acción eliminará el registro de la base de datos, pero la cuenta de acceso en Google Firebase permanecerá activa. Deberá eliminarla manualmente desde la consola de Firebase si desea liberar el correo electrónico.`,
       onConfirm: async () => {
         try {
           const res = await firestoreService.deleteUser(id);
@@ -200,6 +200,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
       if (editingUserId) {
         res = await firestoreService.updateUser(userToSave);
       } else {
+        // Pre-check if email exists in current users list to avoid Auth error
+        const existingUser = users.find(u => u.email.toLowerCase() === newUser.email.toLowerCase());
+        if (existingUser) {
+          throw new Error(`Ya existe un usuario con el correo ${newUser.email} (${existingUser.name}). Por favor, edite el usuario existente en lugar de crear uno nuevo.`);
+        }
+
         // Create user in Auth first using secondary app
         if (newUser.password) {
           const secondaryAuth = getSecondaryAuth();
@@ -211,7 +217,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
           } catch (authError: any) {
             console.error('Error creating user in Auth:', authError);
             if (authError.code === 'auth/email-already-in-use') {
-              throw new Error('El correo electrónico ya está en uso en el sistema de autenticación.');
+              throw new Error(`El correo ${newUser.email} ya está registrado en el sistema de autenticación.
+              
+              Causas posibles:
+              1. El usuario ya existe pero no tiene permisos para su tienda actual (no aparece en su lista).
+              2. El registro del usuario fue eliminado de la base de datos pero no de la consola de Firebase (Cuenta Huérfana).
+              
+              Acción: Use otro correo o solicite al desarrollador eliminar el usuario de la Consola de Firebase.`);
             } else if (authError.code === 'auth/weak-password') {
               throw new Error('La contraseña debe tener al menos 6 caracteres.');
             } else {
@@ -312,6 +324,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
           <h3 className="font-bold text-slate-950 dark:text-slate-50 mb-4">
             {editingUserId ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
           </h3>
+          {stores.length === 0 && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs rounded-lg flex items-center gap-2">
+              <AlertCircle size={14} />
+              <span>No hay tiendas registradas en el sistema. Debe crear al menos una tienda antes de registrar usuarios.</span>
+            </div>
+          )}
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2 flex items-center gap-4 mb-2">
               <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-900 border-2 border-white dark:border-slate-700 flex items-center justify-center text-2xl font-bold text-slate-400 overflow-hidden shrink-0">
