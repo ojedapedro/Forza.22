@@ -24,13 +24,20 @@ interface UserManagementProps {
   stores: StoreType[];
 }
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize a secondary app to create users without signing out the current admin
-const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
-const secondaryAuth = getAuth(secondaryApp);
+const getSecondaryAuth = () => {
+  let secondaryApp;
+  if (getApps().find(app => app.name === 'SecondaryApp')) {
+    secondaryApp = getApp('SecondaryApp');
+  } else {
+    secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
+  }
+  return getAuth(secondaryApp);
+};
 
 export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, stores }) => {
   const [users, setUsers] = React.useState<User[]>([]);
@@ -195,19 +202,20 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
       } else {
         // Create user in Auth first using secondary app
         if (newUser.password) {
+          const secondaryAuth = getSecondaryAuth();
           try {
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUser.email, newUser.password);
             userToSave.id = userCredential.user.uid;
-            // Sign out the secondary app immediately
+            // Sign out the secondary app immediately to not interfere
             await secondaryAuth.signOut();
           } catch (authError: any) {
             console.error('Error creating user in Auth:', authError);
             if (authError.code === 'auth/email-already-in-use') {
-              throw new Error('El correo electrónico ya está en uso.');
+              throw new Error('El correo electrónico ya está en uso en el sistema de autenticación.');
             } else if (authError.code === 'auth/weak-password') {
               throw new Error('La contraseña debe tener al menos 6 caracteres.');
             } else {
-              throw new Error('Error al crear el usuario en autenticación.');
+              throw new Error(`Error de Autenticación: ${authError.message || 'No se pudo crear la cuenta'}`);
             }
           }
         }
@@ -230,7 +238,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
         setMessage({ type: 'error', text: res.message || 'Error guardando usuario' });
       }
     } catch (e: any) {
-      setMessage({ type: 'error', text: e.message || 'Error de conexión' });
+      console.error('Error en handleCreateUser:', e);
+      let errorMsg = e.message || 'Error de conexión';
+      
+      // Try to extract more info if it's a Firestore JSON error
+      try {
+        if (errorMsg.startsWith('{')) {
+          const errData = JSON.parse(errorMsg);
+          errorMsg = `Error (${errData.operationType}): ${errData.error}`;
+        }
+      } catch (parseErr) {}
+      
+      setMessage({ type: 'error', text: errorMsg });
     } finally {
       setIsCreating(false);
       setTimeout(() => setMessage(null), 3000);
@@ -389,18 +408,25 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser, sto
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contraseña Temporal</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                {editingUserId ? 'Nueva Contraseña (opcional)' : 'Contraseña Temporal'}
+              </label>
               <div className="relative">
                 <input 
                   type="text" 
-                  required
+                  required={!editingUserId}
                   value={newUser.password}
                   onChange={e => setNewUser({...newUser, password: e.target.value})}
                   className="w-full p-3 pl-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                  placeholder="********"
+                  placeholder={editingUserId ? "Dejar vacío para no cambiar" : "********"}
                 />
                 <Lock className="absolute left-3 top-3 text-slate-400" size={16} />
               </div>
+              {editingUserId && (
+                <p className="text-[10px] text-slate-500 mt-1 italic">
+                  Nota: El cambio de contraseña en esta sección solo afecta al registro de Firestore.
+                </p>
+              )}
             </div>
 
             <div className="md:col-span-2">
