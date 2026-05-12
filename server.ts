@@ -122,8 +122,10 @@ async function startServer() {
       // devolvemos 404 en lugar de index.html para evitar errores de tipo MIME
       if (req.path.includes('.') && !req.path.endsWith('.html')) {
         console.warn(`⚠️ [Server] 404 Activo no encontrado: ${req.path}`);
-        return res.status(404).json({ error: 'Asset not found' });
+        return res.status(404).set('Cache-Control', 'no-store').json({ error: 'Asset not found', path: req.path });
       }
+      // No cachear el index.html para evitar que el navegador guarde referencias a assets viejos
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

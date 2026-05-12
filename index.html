@@ -31,18 +31,33 @@
         });
       }
 
+      // Detector de errores globales para capturar fallos de carga de assets (404 / Chunk Error)
       window.addEventListener('error', function(e) {
-        console.error("Global Error caught:", e.message);
-        const root = document.getElementById('root');
-        if (root && root.childNodes.length === 0) {
-           // Si hay error y el root está vacío, mostramos el error en pantalla
-           setTimeout(() => {
-             if(root.childNodes.length === 0) {
-               document.body.innerHTML = '<div style="color:red; padding:20px;"><h1>Error de Carga</h1><p>'+e.message+'</p></div>';
-             }
-           }, 1000);
+        // Ignorar errores que no son de carga de scripts
+        const isScriptError = e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK');
+        const isChunkError = e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk'));
+        
+        if (isScriptError || isChunkError) {
+          console.error("🚀 [Error Recovery] Fallo crítico al cargar un recurso:", e);
+          
+          // Mostrar mensaje de recuperación
+          const root = document.getElementById('root');
+          if (root && root.innerHTML === "") {
+             root.innerHTML = `
+              <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family: sans-serif; background:#f8fafc;">
+                <div style="color:#ef4444; margin-bottom:20px;">
+                  <svg width="60" height="60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h1 style="font-size:24px; color:#1e293b; margin-bottom:8px;">Versión Desactualizada</h1>
+                <p style="color:#64748b; max-width:400px; line-height:1.5;">La aplicación se ha actualizado en el servidor. Es necesario recargar para obtener la versión más reciente.</p>
+                <button onclick="window.location.reload(true)" style="margin-top:20px; padding:12px 24px; background:#2563eb; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                  Actualizar Ahora
+                </button>
+              </div>
+             `;
+          }
         }
-      });
+      }, true); // UseCapture para errores de red en tags script/link
     </script>
   </head>
   <body>

@@ -1,8 +1,8 @@
 
 // service-worker.js
 
-const CACHE_STATIC_NAME = 'fiscal-static-v7';
-const CACHE_API_NAME = 'fiscal-api-v4';
+const CACHE_STATIC_NAME = 'fiscal-static-v8';
+const CACHE_API_NAME = 'fiscal-api-v5';
 
 // Recursos críticos para que la app arranque (App Shell)
 const STATIC_ASSETS = [
@@ -98,6 +98,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         const fetchPromise = fetch(event.request).then((networkResponse) => {
+          // Si recibimos un 404 para un archivo JS/CSS, es probable que la build haya cambiado.
+          // Borramos la versión vieja del caché si existía para que la próxima vez pida la nueva.
+          if (networkResponse.status === 404) {
+            caches.open(CACHE_STATIC_NAME).then(cache => cache.delete(event.request));
+            return networkResponse;
+          }
+
           // Validar respuesta antes de cachear: debe ser 200 y NO ser un HTML (error fallback)
           const contentType = networkResponse.headers.get('content-type');
           if (
