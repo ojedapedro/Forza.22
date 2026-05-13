@@ -309,8 +309,13 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   const isPdf = (url?: string) => {
       if (!url) return false;
       const lowerUrl = url.toLowerCase();
-      // Verificación robusta para data URIs y URLs normales
-      return lowerUrl.includes('application/pdf') || lowerUrl.endsWith('.pdf') || lowerUrl.includes('type=pdf');
+      // Verificación robusta: extensión, mime-type en data-uri, o parámetro en URL
+      const urlWithoutQuery = lowerUrl.split('?')[0];
+      return urlWithoutQuery.endsWith('.pdf') || 
+             lowerUrl.includes('application/pdf') || 
+             lowerUrl.includes('type=pdf') ||
+             lowerUrl.includes('.pdf?') ||
+             lowerUrl.startsWith('data:application/pdf');
   };
 
   const openInNewTab = (url: string) => {
@@ -796,16 +801,41 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                         </button>
                                                     </div>
                                                     {isPdf(url) ? (
-                                                        <embed
-                                                            src={url}
-                                                            type="application/pdf"
-                                                            className="w-full h-[600px] rounded-lg"
-                                                        />
+                                                        <div className="w-full h-[600px] flex flex-col bg-slate-100 dark:bg-slate-900/50 rounded-xl overflow-hidden shadow-inner">
+                                                            <object
+                                                                data={url}
+                                                                type="application/pdf"
+                                                                className="w-full h-full rounded-lg"
+                                                            >
+                                                                <iframe
+                                                                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
+                                                                    title={`Soporte PDF ${idx + 1}`}
+                                                                    className="w-full h-full rounded-lg border-none"
+                                                                />
+                                                            </object>
+                                                            <div className="mt-3 flex items-center justify-center gap-4 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+                                                                <a 
+                                                                    href={url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-[11px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-full transition-colors"
+                                                                >
+                                                                    <ExternalLink size={12} /> Abrir Externamente
+                                                                </a>
+                                                                <button
+                                                                    onClick={() => openInNewTab(url)}
+                                                                    className="text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-2"
+                                                                >
+                                                                    <Maximize2 size={12} /> Maximizar
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     ) : (
                                                         <img 
                                                             src={url} 
                                                             alt={`Soporte ${idx + 1}`} 
                                                             className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-500 group-hover:scale-[1.02]"
+                                                            referrerPolicy="no-referrer"
                                                             onError={() => setImageError(true)}
                                                         />
                                                     )}

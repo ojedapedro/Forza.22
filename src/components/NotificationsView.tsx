@@ -848,44 +848,51 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                 {getSeverityIcon(alert.severity)}
                             </div>
                             <div>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mb-2">
-                                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase text-slate-500">
-                                        <Building2 size={10} />
-                                        Tienda: {alert.storeName}
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4">
+                                    <div className="flex flex-col">
+                                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Identificador de Transacción</div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <span className="text-blue-500">#</span>{alert.paymentId.slice(-8).toUpperCase()}
+                                            </h3>
+                                            {alert.rubro && (
+                                                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded-sm border border-blue-100 dark:border-blue-800/30">
+                                                    {alert.rubro}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
                                     
-                                    {alert.rubro && (
-                                        <>
-                                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                            <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm border border-blue-100 dark:border-blue-800/30">
-                                                {alert.rubro}
-                                            </span>
-                                        </>
-                                    )}
+                                    <div className="hidden sm:block h-8 w-px bg-slate-100 dark:bg-slate-800 self-end mx-1"></div>
+
+                                    <div className="flex flex-col">
+                                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Tienda</div>
+                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 px-2 py-0.5 rounded text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700">
+                                            <Building2 size={10} className="text-blue-500" />
+                                            {alert.storeName}
+                                        </div>
+                                    </div>
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
                                     <span className="text-blue-500 dark:text-blue-400 text-xs font-black block uppercase mb-0.5">Concepto de Pago</span>
                                     {alert.title}
                                 </h3>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-5 border-t border-slate-100 dark:border-slate-800/50">
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Estado / Tiempo</span>
-                                        <p className={`text-sm font-bold ${
-                                            alert.auditSeverity === 'critical' ? 'text-red-700 dark:text-red-400' :
-                                            alert.severity === 'critical' ? 'text-red-500' : 
-                                            alert.auditSeverity === 'amber' ? 'text-amber-500' :
-                                            alert.auditSeverity === 'green' ? 'text-emerald-500' :
-                                            'text-emerald-500'
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Estado / Tiempo</span>
+                                        <div className={`text-xs font-bold px-2 py-1 rounded-lg w-fit ${
+                                            alert.auditSeverity === 'critical' ? 'bg-red-50 text-red-700 border border-red-100' :
+                                            alert.severity === 'critical' ? 'bg-red-50 text-red-500 border border-red-100' : 
+                                            alert.auditSeverity === 'amber' ? 'bg-amber-50 text-amber-500 border border-amber-100' :
+                                            'bg-emerald-50 text-emerald-500 border border-emerald-100'
                                         }`}>
                                             {alert.timeLabel}
-                                        </p>
+                                        </div>
                                     </div>
 
                                     {alert.auditDaysCount !== undefined && (
                                         <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-3">
-                                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Plazo Auditoría</span>
+                                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Plazo Auditoría</span>
                                             <div className="flex items-center gap-1.5">
                                                 <span className={`w-2 h-2 rounded-full ${
                                                     alert.auditSeverity === 'critical' ? 'bg-red-700 animate-pulse' :
@@ -893,31 +900,29 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                                     alert.auditSeverity === 'amber' ? 'bg-amber-500' :
                                                     'bg-emerald-500'
                                                 }`}></span>
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
                                                     {alert.auditDaysCount} {Math.abs(alert.auditDaysCount) === 1 ? 'día' : 'días'}
                                                 </span>
                                             </div>
                                         </div>
                                     )}
                                     
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Fecha de Pago / Soporte</span>
-                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                            {alert.paymentDate ? new Date(alert.paymentDate + 'T00:00:00').toLocaleDateString('es-ES') : 'No registrada'}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700">
-                                        <Calendar size={12} className="text-slate-400" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Vencimiento</span>
+                                    <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-3">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Vencimiento</span>
+                                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 w-fit">
+                                            <Calendar size={12} className="text-slate-400" />
                                             <input 
                                                 type="date"
                                                 value={alert.dueDate}
                                                 onChange={(e) => setCustomExpirations(prev => ({ ...prev, [alert.id]: e.target.value }))}
-                                                className="bg-transparent border-none p-0 text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer"
+                                                className="bg-transparent border-none p-0 text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer w-24"
                                             />
                                         </div>
+                                    </div>
+
+                                    <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-3">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Monto Estimado</span>
+                                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase">${alert.amount.toLocaleString()} <span className="text-[10px] text-slate-400">USD</span></span>
                                     </div>
                                 </div>
                             </div>
