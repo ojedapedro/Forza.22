@@ -116,7 +116,20 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    // Servir assets estáticos con cache largo si tienen hash, pero NO el index.html ni el sw.js
+    app.use(express.static(distPath, {
+      maxAge: '1d',
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html') || filePath.endsWith('service-worker.js') || filePath.endsWith('manifest.json')) {
+          res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+          res.set('Pragma', 'no-cache');
+          res.set('Expires', '0');
+        } else if (filePath.includes('/assets/')) {
+          // Los assets de Vite tienen hashes, son seguros para cachear por mucho tiempo
+          res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
     app.get('*all', (req, res) => {
       // Si la petición parece ser un activo (tiene extensión) y no fue capturada por express.static, 
       // devolvemos 404 en lugar de index.html para evitar errores de tipo MIME

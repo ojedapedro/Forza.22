@@ -154,19 +154,27 @@ export const Approvals: React.FC<ApprovalsProps> = ({
 
   const selectedPayment = payments.find(p => p.id === selectedId);
 
+  // Helper para obtener el Rubro (Label del grupo) basado en el specificType y categoría
+  const getRubroFromPayment = React.useCallback((payment: Payment) => {
+    const config = getTaxConfig(payment.category);
+    if (!config) return null;
+    
+    // El specificType suele ser "CODE - NAME", extraemos CODE
+    const code = payment.specificType.split(' - ')[0];
+    
+    // Buscamos el grupo que contiene este item
+    for (const group of Object.values(config)) {
+        if (group.items.some(item => item.code === code)) {
+            return group.label;
+        }
+    }
+    return null;
+  }, []);
+
   const paymentRubro = React.useMemo(() => {
       if (!selectedPayment) return null;
-      const config = getTaxConfig(selectedPayment.category);
-      if (!config) return null;
-      
-      const code = selectedPayment.specificType.split(' - ')[0];
-      for (const group of Object.values(config)) {
-          if (group.items.some(item => item.code === code)) {
-              return group.label;
-          }
-      }
-      return null;
-  }, [selectedPayment]);
+      return getRubroFromPayment(selectedPayment);
+  }, [selectedPayment, getRubroFromPayment]);
 
   React.useEffect(() => {
     setRejectionNote('');
@@ -585,18 +593,9 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                         {payment.storeName}
                                      </h3>
                                      {(() => {
-                                         const config = getTaxConfig(payment.category);
-                                         if (!config) return null;
-                                         const code = payment.specificType.split(' - ')[0];
-                                         let rubro = null;
-                                         for (const group of Object.values(config)) {
-                                             if (group.items.some(item => item.code === code)) {
-                                                 rubro = group.label;
-                                                 break;
-                                             }
-                                         }
+                                         const rubro = getRubroFromPayment(payment);
                                          return rubro ? (
-                                             <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-0.5">
+                                             <span className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-widest mt-1 bg-blue-50/50 dark:bg-blue-900/20 px-1 rounded-sm w-fit">
                                                  {rubro}
                                              </span>
                                          ) : null;
@@ -880,7 +879,11 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
                                                     <div className="flex flex-col">
                                                         {paymentRubro && (
-                                                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{paymentRubro}</span>
+                                                            <div className="flex items-center gap-1.5 mb-1">
+                                                                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded-sm border border-blue-100 dark:border-blue-800/30">
+                                                                    {paymentRubro}
+                                                                </span>
+                                                            </div>
                                                         )}
                                                         <span className="text-slate-500 dark:text-slate-400">{selectedPayment.specificType}</span>
                                                     </div>

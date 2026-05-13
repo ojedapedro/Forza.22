@@ -27,6 +27,7 @@ import { firestoreService } from './services/firestoreService';
 import { notificationService } from './services/notificationService';
 import { APP_LOGO_URL } from './constants';
 import { sendPushNotification, requestNotificationPermission } from './utils/pushNotifications';
+import { ThemeProvider } from './components/ThemeContext';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 import { calculateNextDueDate } from './utils';
 import { getTaxConfig } from './taxConfigurations';
@@ -1726,19 +1727,26 @@ function App({}: AppProps = {}) {
 
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Loader2 className="w-12 h-12 text-brand-500 animate-spin" />
-      </div>
+      <ThemeProvider>
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+          <Loader2 className="w-12 h-12 text-brand-500 animate-spin" />
+        </div>
+      </ThemeProvider>
     );
   }
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={handleLogin} />;
+    return (
+      <ThemeProvider>
+        <Login onLoginSuccess={handleLogin} />
+      </ThemeProvider>
+    );
   }
 
   return (
-    <ErrorBoundary>
-      <ExchangeRateProvider exchangeRate={exchangeRate}>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <ExchangeRateProvider exchangeRate={exchangeRate}>
         <div className="flex bg-[#111827] dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
           
           {/* Sidebar Responsive */}
@@ -1888,6 +1896,7 @@ function App({}: AppProps = {}) {
         </div>
       </ExchangeRateProvider>
     </ErrorBoundary>
+  </ThemeProvider>
   );
 }
 

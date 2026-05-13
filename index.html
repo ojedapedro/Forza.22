@@ -33,11 +33,18 @@
 
       // Detector de errores globales para capturar fallos de carga de assets (404 / Chunk Error)
       window.addEventListener('error', function(e) {
-        // Ignorar errores que no son de carga de scripts/estilos
-        const isScriptError = e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK');
-        const isChunkError = e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk') || e.message.includes('Failed to fetch dynamically imported module'));
+        // 1. Detectar errores en tags script/link (e.target es el elemento)
+        const isElementError = e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK');
         
-        if (isScriptError || isChunkError) {
+        // 2. Detectar errores de ejecución de chunks (e.message existe y contiene keywords)
+        const isChunkError = e.message && (
+          e.message.includes('ChunkLoadError') || 
+          e.message.includes('Loading chunk') || 
+          e.message.includes('Failed to fetch dynamically imported module') ||
+          e.message.includes('Unexpected token \'<\'') // Típico cuando el servidor devuelve index.html (404 fallback) en vez de JS
+        );
+        
+        if (isElementError || isChunkError) {
           console.error("🚀 [Error Recovery] Fallo crítico al cargar un recurso:", e);
           
           // Verificar si ya intentamos recargar recientemente para evitar loops
@@ -46,7 +53,15 @@
           if (!lastReload || now - parseInt(lastReload) > 10000) {
             sessionStorage.setItem('last_asset_reload', now.toString());
             console.warn("🔄 [Error Recovery] Detectado error de asset. Intentando recarga forzada...");
-            window.location.reload(true);
+            
+            // Intentar limpiar cachés de SW antes de recargar
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
+            }
+            
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 500);
             return;
           }
 
@@ -73,7 +88,7 @@
   <body>
     <div id="root"></div>
     <!-- PUNTO DE ENTRADA CRÍTICO -->
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx?v=20260513"></script>
   </body>
 </html>
       
