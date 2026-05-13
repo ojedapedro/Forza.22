@@ -817,29 +817,29 @@ function App({}: AppProps = {}) {
         }
 
         // --- INTEGRACIÓN CON PLANIFICACIÓN ANUAL (PRESUPUESTO) ---
-        // Si hay una propuesta, la registramos también en el presupuesto para visualización en calendario
-        if (paymentToSave.proposedAmount !== undefined || paymentToSave.proposedDueDate) {
-          const proposalBudgetId = `BUD-PROP-${paymentToSave.id}`;
-          const proposalBudget: BudgetEntry = {
-              id: proposalBudgetId,
-              storeId: paymentToSave.storeId,
-              date: paymentToSave.proposedDueDate || paymentToSave.dueDate,
-              title: `[PROPUESTA] ${paymentToSave.specificType}`,
-              amount: paymentToSave.proposedAmount ?? paymentToSave.amount,
-              category: paymentToSave.category,
-              notes: `Propuesta de: ${paymentToSave.storeName}. Justificación: ${paymentToSave.proposedJustification || 'Sin justificación'}`
-          };
-          
-          try {
-              await firestoreService.createBudget(proposalBudget);
-              setBudgets(prev => {
-                  const filtered = prev.filter(b => b.id !== proposalBudgetId);
-                  return [...filtered, proposalBudget];
-              });
-              console.log("📊 Propuesta sincronizada con Planificación Anual");
-          } catch (budgetErr) {
-              console.error("Error sincronizando propuesta con presupuesto:", budgetErr);
-          }
+        // Se registra la propuesta o el pago proyectado en el presupuesto para visualización en calendario
+        const proposalBudgetId = `BUD-PROP-${paymentToSave.id}`;
+        const isProposal = paymentToSave.proposedAmount !== undefined || paymentToSave.proposedDueDate;
+        
+        const budgetEntry: BudgetEntry = {
+            id: proposalBudgetId,
+            storeId: paymentToSave.storeId,
+            date: paymentToSave.proposedDueDate || paymentToSave.dueDate,
+            title: `${isProposal ? '[PROPUESTA] ' : '[PROGRAMADO] '}${paymentToSave.specificType}`,
+            amount: paymentToSave.proposedAmount ?? paymentToSave.amount,
+            category: paymentToSave.category,
+            notes: `Registro de: ${paymentToSave.storeName}. Justificación: ${paymentToSave.proposedJustification || 'Sincronización automática'}`
+        };
+        
+        try {
+            await firestoreService.createBudget(budgetEntry);
+            setBudgets(prev => {
+                const filtered = prev.filter(b => b.id !== proposalBudgetId);
+                return [...filtered, budgetEntry];
+            });
+            console.log("📊 Pago/Propuesta sincronizada con Planificación Anual");
+        } catch (budgetErr) {
+            console.error("Error sincronizando con presupuesto:", budgetErr);
         }
 
         console.log("✨ Proceso completado exitosamente.");
@@ -914,30 +914,32 @@ function App({}: AppProps = {}) {
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
 
             // --- SINCRONIZACIÓN CON PRESUPUESTO AL APROBAR ---
-            // Si existía una entrada de presupuesto de "Propuesta", la actualizamos a una real o la eliminamos
-            // ya que el pago aprobado ahora es la realidad.
+            // El pago aprobado ahora se convierte en una entrada definitiva en la planificación anual
             const proposalBudgetId = `BUD-PROP-${id}`;
-            if (budgets.find(b => b.id === proposalBudgetId)) {
-                // Si el auditor cambió el monto o fecha, podríamos querer reflejarlo en el presupuesto final
-                // Pero generalmente el presupuesto es la PLANIFICACIÓN.
-                // Registramos el cambio aprobado como una entrada de presupuesto definitiva
-                const finalBudgetEntry: BudgetEntry = {
-                    id: `BUD-APR-${id}`, // ID definitivo
-                    storeId: updatedPayment.storeId,
-                    date: updatedPayment.dueDate,
-                    title: `[APROBADO] ${updatedPayment.specificType}`,
-                    amount: updatedPayment.amount,
-                    category: updatedPayment.category,
-                    notes: `Aprobado por auditor. Ref: ${id}`
-                };
-                
+            const finalBudgetId = `BUD-APR-${id}`;
+            
+            const finalBudgetEntry: BudgetEntry = {
+                id: finalBudgetId, 
+                storeId: updatedPayment.storeId,
+                date: updatedPayment.dueDate,
+                title: `[APROBADO] ${updatedPayment.specificType}`,
+                amount: updatedPayment.amount,
+                category: updatedPayment.category,
+                notes: `Aprobado por auditor. Ref: ${id}. Rubro: ${updatedPayment.category}`
+            };
+            
+            try {
                 await firestoreService.createBudget(finalBudgetEntry);
+                // Si existía una propuesta, la eliminamos para evitar duplicidad
                 await firestoreService.deleteBudget(proposalBudgetId);
                 
                 setBudgets(prev => [
-                    ...prev.filter(b => b.id !== proposalBudgetId && b.id !== finalBudgetEntry.id),
+                    ...prev.filter(b => b.id !== proposalBudgetId && b.id !== finalBudgetId),
                     finalBudgetEntry
                 ]);
+                console.log("✅ Presupuesto actualizado tras aprobación");
+            } catch (budgetErr) {
+                console.error("Error actualizando presupuesto tras aprobación:", budgetErr);
             }
 
             // Notificar al creador del pago

@@ -35,6 +35,7 @@ import {
   Check
 } from 'lucide-react';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
+import { getTaxConfig } from '../taxConfigurations';
 
 interface ApprovalsProps {
   payments: Payment[];
@@ -152,6 +153,20 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   }, [payments, searchTerm, sortOption]);
 
   const selectedPayment = payments.find(p => p.id === selectedId);
+
+  const paymentRubro = React.useMemo(() => {
+      if (!selectedPayment) return null;
+      const config = getTaxConfig(selectedPayment.category);
+      if (!config) return null;
+      
+      const code = selectedPayment.specificType.split(' - ')[0];
+      for (const group of Object.values(config)) {
+          if (group.items.some(item => item.code === code)) {
+              return group.label;
+          }
+      }
+      return null;
+  }, [selectedPayment]);
 
   React.useEffect(() => {
     setRejectionNote('');
@@ -569,6 +584,23 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                      <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate leading-tight">
                                         {payment.storeName}
                                      </h3>
+                                     {(() => {
+                                         const config = getTaxConfig(payment.category);
+                                         if (!config) return null;
+                                         const code = payment.specificType.split(' - ')[0];
+                                         let rubro = null;
+                                         for (const group of Object.values(config)) {
+                                             if (group.items.some(item => item.code === code)) {
+                                                 rubro = group.label;
+                                                 break;
+                                             }
+                                         }
+                                         return rubro ? (
+                                             <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-0.5">
+                                                 {rubro}
+                                             </span>
+                                         ) : null;
+                                     })()}
                                 </div>
                                 <div className="text-right shrink-0">
                                     <div className="flex flex-col items-end gap-0.5">
@@ -844,9 +876,14 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             <div className="space-y-1">
                                                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Identificador de Transacción</div>
                                                 <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900 dark:text-white flex items-center gap-3">
-                                                    <span className="text-blue-600">#</span>{selectedPayment.id.slice(-8).toUpperCase()}
+                                                    <span className="text-blue-600">#</span>{selectedId?.slice(-8).toUpperCase()}
                                                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                                                    <span className="text-slate-500 dark:text-slate-400">{selectedPayment.specificType}</span>
+                                                    <div className="flex flex-col">
+                                                        {paymentRubro && (
+                                                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{paymentRubro}</span>
+                                                        )}
+                                                        <span className="text-slate-500 dark:text-slate-400">{selectedPayment.specificType}</span>
+                                                    </div>
                                                 </h2>
                                             </div>
                                             <div className="flex flex-wrap gap-3">

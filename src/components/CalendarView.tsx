@@ -457,8 +457,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     }
                     {dayBudgets.length > 0 && (
                         <div 
-                          className={`w-2 h-2 rounded-full ${dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'bg-amber-400 animate-pulse' : 'bg-cyan-400'}`} 
-                          title={dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'Propuesta de Pago' : 'Presupuesto Asignado'}
+                          className={`w-2 h-2 rounded-full ${
+                             dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'bg-amber-400 animate-pulse' : 
+                             dayBudgets.some(b => b.title.includes('[APROBADO]')) ? 'bg-emerald-500' : 
+                             dayBudgets.some(b => b.title.includes('[PROGRAMADO]')) ? 'bg-blue-500' : 
+                             'bg-cyan-400'
+                          }`} 
+                          title={
+                             dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'Propuesta de Pago' : 
+                             dayBudgets.some(b => b.title.includes('[APROBADO]')) ? 'Presupuesto Aprobado' :
+                             dayBudgets.some(b => b.title.includes('[PROGRAMADO]')) ? 'Gasto Programado' :
+                             'Presupuesto Asignado'
+                          }
                         ></div>
                     )}
                 </div>
@@ -1070,28 +1080,58 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     </h3>
                     {dayEvents.budgets.map((budget) => {
                         const isProposal = budget.title.includes('[PROPUESTA]');
+                        const isApproved = budget.title.includes('[APROBADO]');
+                        const isProgrammed = budget.title.includes('[PROGRAMADO]');
+                        
                         return (
                           <div key={budget.id} className={`p-4 rounded-xl border group relative ${
                               isProposal 
                                 ? 'border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10' 
-                                : 'border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-900/10'
+                                : isApproved
+                                  ? 'border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/10'
+                                  : isProgrammed
+                                    ? 'border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10'
+                                    : 'border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-900/10'
                           }`}>
-                              <button 
-                                  onClick={() => handleDeleteBudget(budget.id)}
-                                  className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                  <X size={14} />
-                              </button>
+                              {(!isProposal && !isApproved && !isProgrammed) && (
+                                  <button 
+                                      onClick={() => handleDeleteBudget(budget.id)}
+                                      className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                      <X size={14} />
+                                  </button>
+                              )}
                               <div className="flex justify-between items-start mb-1 pr-4">
-                                  <span className={`font-bold text-sm ${isProposal ? 'text-amber-800 dark:text-amber-200' : 'text-cyan-800 dark:text-cyan-200'}`}>
+                                  <span className={`font-bold text-sm ${
+                                      isProposal ? 'text-amber-800 dark:text-amber-200' : 
+                                      isApproved ? 'text-emerald-800 dark:text-emerald-200' :
+                                      isProgrammed ? 'text-blue-800 dark:text-blue-200' :
+                                      'text-cyan-800 dark:text-cyan-200'
+                                  }`}>
                                     {budget.title}
                                   </span>
                                   {isProposal && (
                                     <span className="text-[9px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-black">PROPUESTA</span>
                                   )}
+                                  {isApproved && (
+                                    <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-black">APROBADO</span>
+                                  )}
+                                  {isProgrammed && (
+                                    <span className="text-[9px] bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded font-black">PROGRAMADO</span>
+                                  )}
                               </div>
-                              <p className={`text-xs mb-2 ${isProposal ? 'text-amber-600 dark:text-amber-400' : 'text-cyan-600 dark:text-cyan-400'}`}>{budget.category}</p>
-                              <div className={`font-mono text-lg font-bold ${isProposal ? 'text-amber-700 dark:text-amber-300' : 'text-cyan-700 dark:text-cyan-300'}`}>
+                              <p className={`text-xs mb-2 ${
+                                  isProposal ? 'text-amber-600 dark:text-amber-400' : 
+                                  isApproved ? 'text-emerald-600 dark:text-emerald-400' :
+                                  isProgrammed ? 'text-blue-600 dark:text-blue-400' :
+                                  'text-cyan-600 dark:text-cyan-400'
+                              }`}>{budget.category}</p>
+                              <div className={`font-mono text-lg font-bold ${
+                                  isProposal ? 'text-amber-700 dark:text-amber-300' : 
+                                  isApproved ? 'text-emerald-700 dark:text-emerald-300' :
+                                  isProgrammed ? 'text-blue-700 dark:text-blue-300' :
+                                  'text-cyan-700 dark:text-cyan-300'
+                              }`}>
                                   ${budget.amount.toLocaleString()}
                               </div>
                               {budget.notes && (
