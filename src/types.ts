@@ -161,6 +161,7 @@ export interface AlertItem {
   timeLabel: string;
   dueDate: string;
   paymentDate?: string;
+  rubro?: string | null;
   auditDaysCount?: number;
   auditSeverity?: 'green' | 'amber' | 'red' | 'critical';
 }

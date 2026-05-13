@@ -28,6 +28,7 @@ import { notificationService } from '../services/notificationService';
 import { formatTime } from '../utils';
 import { sendPushNotification, requestNotificationPermission } from '../utils/pushNotifications';
 import { Building2 } from 'lucide-react';
+import { getTaxConfig } from '../taxConfigurations';
 
 interface NotificationsViewProps {
   onBack: () => void;
@@ -69,6 +70,23 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   const [sortBy, setSortBy] = useState<'severity' | 'date'>('severity');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  
+  // Helper para obtener el Rubro (Label del grupo) basado en el specificType y categoría
+  const getRubroFromPayment = React.useCallback((payment: Payment) => {
+    const config = getTaxConfig(payment.category);
+    if (!config) return null;
+    
+    // El specificType suele ser "CODE - NAME", extraemos CODE
+    const code = payment.specificType.split(' - ')[0];
+    
+    // Buscamos el grupo que contiene este item
+    for (const group of Object.values(config)) {
+        if (group.items.some(item => item.code === code)) {
+            return group.label;
+        }
+    }
+    return null;
+  }, []);
 
   // Custom Expirations State (Persisted)
   const [customExpirations, setCustomExpirations] = useState<Record<string, string>>(() => {
@@ -228,6 +246,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
             amount: p.amount,
             severity,
             timeLabel,
+            rubro: getRubroFromPayment(p),
             dueDate: effectiveDueDate,
             paymentDate: p.paymentDate,
             auditDaysCount,
@@ -829,13 +848,22 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                                 {getSeverityIcon(alert.severity)}
                             </div>
                             <div>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mb-2">
                                     <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px] font-black uppercase text-slate-500">
                                         <Building2 size={10} />
                                         Tienda: {alert.storeName}
                                     </div>
                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{alert.category}</span>
+                                    
+                                    {alert.rubro && (
+                                        <>
+                                            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                            <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm border border-blue-100 dark:border-blue-800/30">
+                                                {alert.rubro}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
                                     <span className="text-blue-500 dark:text-blue-400 text-xs font-black block uppercase mb-0.5">Concepto de Pago</span>
