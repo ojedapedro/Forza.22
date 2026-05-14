@@ -18,6 +18,9 @@ import sendEmailHandler from './src/api/notifications/send-email.ts';
 import whatsappCheckHandler from './src/api/notifications/whatsapp/check.ts';
 import whatsappSendHandler from './src/api/notifications/whatsapp/send.ts';
 import exchangeRateHandler from './src/api/exchange-rate.ts';
+import hikvisionWebhookHandler from './src/api/hikvision/webhook.ts';
+import hikvisionStatusHandler from './src/api/hikvision/status.ts';
+import hikvisionControlHandler from './src/api/hikvision/control.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +79,9 @@ async function startServer() {
   app.all('/api/notifications/whatsapp/check', whatsappCheckHandler);
   app.all('/api/notifications/whatsapp/send', whatsappSendHandler);
   app.all('/api/exchange-rate', exchangeRateHandler);
+  app.all('/api/hikvision/webhook', hikvisionWebhookHandler);
+  app.all('/api/hikvision/status', hikvisionStatusHandler);
+  app.all('/api/hikvision/control', hikvisionControlHandler);
 
   // global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
