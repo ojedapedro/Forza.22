@@ -65,13 +65,13 @@ export const Sidebar: FC<SidebarProps> = ({
   }, [APP_LOGO_URL]);
   
   const navItems = [
-    { id: 'dashboard', label: 'Panel Principal', icon: Activity, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.AUDITOR, Role.PRESIDENT] },
+    { id: 'admin-control', label: 'Panel Control', icon: Activity, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
+    { id: 'dashboard', label: 'Monitor Pagos', icon: BarChart3, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.AUDITOR, Role.PRESIDENT] },
     { id: 'payments', label: 'Categoría Fiscal', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'network', label: 'Estado de Red', icon: Building2, roles: [Role.ADMIN, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'calendar', label: 'Planificacion Anual', icon: Calendar, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
-    { id: 'payroll', label: 'Nómina', icon: Users, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'invoices', label: 'Facturación', icon: CreditCard, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PRESIDENT] },
     { id: 'predictive', label: 'Análisis Predictivo', icon: Activity, roles: [Role.SUPER_ADMIN, Role.PRESIDENT, Role.AUDITOR] },
     { id: 'evaluation', label: 'Evaluación', icon: BarChart3, roles: [Role.ADMIN, Role.AUDITOR, Role.SUPER_ADMIN] },
@@ -106,12 +106,12 @@ export const Sidebar: FC<SidebarProps> = ({
         <div className={`space-y-6 transition-all duration-300 ${isCollapsed && !isMobileOpen ? 'p-4 items-center' : 'p-6'}`}>
           <div className={`flex items-center ${isCollapsed && !isMobileOpen ? 'flex-col gap-4' : 'justify-between'}`}>
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xl shadow-brand-500/20 bg-slate-100 dark:bg-white/5 overflow-hidden border border-slate-200 dark:border-white/10">
+              <div className={`flex items-center justify-center shrink-0 ${isCollapsed && !isMobileOpen ? 'h-10 w-10' : 'h-12'}`}>
                 {!imgError ? (
                     <img 
                     src={APP_LOGO_URL} 
-                    alt="Forza 22 Logo" 
-                    className="w-full h-full object-cover" 
+                    alt="Forza Gerencia Logo" 
+                    className={`h-full w-auto object-contain transition-all duration-300 ${isCollapsed && !isMobileOpen ? 'scale-150 object-left' : ''}`} 
                     onError={() => setImgError(true)}
                     referrerPolicy="no-referrer"
                   />
@@ -119,12 +119,6 @@ export const Sidebar: FC<SidebarProps> = ({
                   <Building2 className="text-brand-500 w-6 h-6" />
                 )}
               </div>
-              {(!isCollapsed || isMobileOpen) && (
-                <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-                  <span className="font-bold text-xl tracking-tight text-slate-950 dark:text-slate-50 leading-none">Forza 22</span>
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Enterprise</span>
-                </div>
-              )}
             </div>
             
             {/* Toggle Button for Desktop */}

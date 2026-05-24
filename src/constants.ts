@@ -3,7 +3,7 @@ import { Category, Payment, PaymentStatus, Store, AlertItem, Role, Employee, Pay
 
 // URL del Logo de la Aplicación
 // Nota: Si la imagen falla, la sidebar mostrará un icono por defecto.
-export const APP_LOGO_URL = "https://i.ibb.co/YFGy2wjg/a8933dc7cb4d97e76826bcf7a9169945-0-1776164238-1967.png";
+export const APP_LOGO_URL = "https://i.ibb.co/Y7FdnH2L/Forza-Gerencia-Alien-Center-Azul-Metalizado-1.png";
 
 export const MUNICIPAL_SALES_TAX_RATES: Record<string, number> = {
   'Chacao': 0.03, // 3% para Chacao

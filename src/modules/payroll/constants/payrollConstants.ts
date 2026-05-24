@@ -1,0 +1,24 @@
+
+export const PAYROLL_FACTORS = {
+  WORKER: {
+    SSO: 0.04,
+    RPE: 0.005,
+    FAOV: 0.01,
+  },
+  EMPLOYER: {
+    SSO: 0.09,
+    RPE: 0.02,
+    FAOV: 0.02,
+    INCES: 0.02,
+    PENSIONS_FUND: 0.09,
+    PROVISION_PRESTACIONES: 0.1666,
+    PROVISION_VACATION: 0.0833,
+    PROVISION_BONUS: 0.0833,
+  },
+  MAX_SSO_SALARY_WEEKS: 5,
+};
+
+export const PAYROLL_STATUS = {
+  PENDING: 'PENDIENTE',
+  PROCESSED: 'PROCESADOS',
+};

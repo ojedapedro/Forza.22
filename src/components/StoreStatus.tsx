@@ -34,7 +34,12 @@ interface StoreStatusProps {
   stores: Store[];
 }
 
-export const StoreStatus: React.FC<StoreStatusProps> = ({ payments, budgets, userStoreIds = [], stores }) => {
+export const StoreStatus: React.FC<StoreStatusProps> = ({ 
+  payments = [], 
+  budgets = [], 
+  userStoreIds = [], 
+  stores = [] 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredStore, setHoveredStore] = useState<string | null>(null);
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);

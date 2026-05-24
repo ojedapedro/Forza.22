@@ -92,13 +92,17 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
             <div className="relative z-10 w-[400px] h-[500px]">
                 
                 {/* Main Logo Illustration */}
-                <div className="w-full h-full bg-white rounded-[5rem] overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.1)] border-8 border-white/10 animate-in fade-in zoom-in duration-700">
-                    <img 
-                        src={APP_LOGO_URL} 
-                        alt="Forza 22 Logo" 
-                        className="w-full h-full object-contain p-8"
-                        style={{ mixBlendMode: 'normal' }} 
-                    />
+                <div className="w-full h-full p-1.5 bg-gradient-to-br from-blue-400/40 via-blue-900/20 to-indigo-500/40 rounded-[5rem] shadow-[0_0_60px_rgba(32,124,229,0.25)] animate-in fade-in zoom-in duration-700 relative group">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-brand-500/10 to-transparent rounded-[5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="w-full h-full rounded-[4.5rem] overflow-hidden bg-[#0A1118] relative">
+                        {/* Overlay para suavizar y mezclar la imagen con el marco */}
+                        <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] z-10 pointer-events-none rounded-[4.5rem]"></div>
+                        <img 
+                            src={APP_LOGO_URL} 
+                            alt="Forza Gerencia Logo" 
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 ease-out"
+                        />
+                    </div>
                 </div>
                 
                 {/* Floating Card: Profit */}
@@ -162,9 +166,8 @@ export const Login: FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-10">
-                <img src={APP_LOGO_URL} alt="Logo" className="w-10 h-10 rounded-full shadow-lg" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent tracking-tight">Forza 22</span>
+            <div className="flex items-center gap-3 mb-10 h-12">
+                <img src={APP_LOGO_URL} alt="Forza Gerencia Logo" className="h-full w-auto object-contain" />
             </div>
 
             <div className="max-w-md w-full mx-auto">

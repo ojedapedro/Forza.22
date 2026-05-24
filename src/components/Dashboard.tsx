@@ -26,7 +26,7 @@ import {
   Building2,
   CheckCircle2
 } from 'lucide-react';
-import { Payment, PaymentStatus, PayrollEntry, Role, User, Category, Store, BudgetEntry } from '../types';
+import { Payment, PaymentStatus, Role, User, Category, Store, BudgetEntry } from '../types';
 import { formatDate, formatDateTime } from '../utils';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { StripePaymentModal } from './StripePaymentModal';
@@ -36,7 +36,6 @@ import { IS_OFFLINE_MODE } from '../services/firestoreService';
 interface DashboardProps {
   payments: Payment[];
   budgets: BudgetEntry[];
-  payrollEntries: PayrollEntry[];
   onNewPayment: () => void;
   onEditPayment: (payment: Payment) => void;
   onPaymentSuccess: (paymentId: string) => void;
@@ -48,14 +47,13 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-  payments, 
-  budgets,
-  payrollEntries, 
+  payments = [], 
+  budgets = [],
   onNewPayment, 
   onEditPayment,
   onPaymentSuccess,
   currentUser,
-  stores,
+  stores = [],
   onLoadMore,
   hasMore,
   isLoadingMore
@@ -72,14 +70,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
 
   const filteredByStorePayments = React.useMemo(() => {
+    if (!payments) return [];
     if (selectedStoreId === 'all') return payments;
     return payments.filter(p => p.storeId === selectedStoreId);
   }, [payments, selectedStoreId]);
 
   const fiscalHealth = React.useMemo(() => {
     if (selectedStoreId === 'all') return 'slate';
+    if (!stores) return 'slate';
     const store = stores.find(s => s.id === selectedStoreId);
-    return getStoreFiscalHealth(selectedStoreId, payments, budgets, store);
+    return getStoreFiscalHealth(selectedStoreId, payments || [], budgets || [], store);
   }, [selectedStoreId, payments, budgets, stores]);
 
   const handleDownloadFiscalCategoryPDF = () => {
@@ -181,34 +181,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Calcular totales reales basados en el estado de los pagos
-  const unpaidPayments = filteredByStorePayments.filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status));
+  const unpaidPayments = (filteredByStorePayments || []).filter(p => [PaymentStatus.PENDING, PaymentStatus.UPLOADED, PaymentStatus.OVERDUE].includes(p.status));
   const totalDue = unpaidPayments.reduce((acc, curr) => acc + curr.amount, 0);
   const totalDueBs = unpaidPayments.reduce((acc, curr) => acc + (curr.dueDateAmountBs || (curr.amount * exchangeRate)), 0);
 
-  const overduePayments = filteredByStorePayments.filter(p => p.status === PaymentStatus.OVERDUE);
+  const overduePayments = (filteredByStorePayments || []).filter(p => p.status === PaymentStatus.OVERDUE);
   const totalOverdue = overduePayments.reduce((acc, curr) => acc + curr.amount, 0);
   const totalOverdueBs = overduePayments.reduce((acc, curr) => acc + (curr.dueDateAmountBs || (curr.amount * exchangeRate)), 0);
 
-  // Calcular total de pasivos laborales
-  const totalLiabilities = payrollEntries.reduce((acc, entry) => {
-    const entryLiabilities = entry.employerLiabilities.reduce((sum, l) => sum + l.amount, 0);
-    return acc + entryLiabilities;
-  }, 0);
-
   // Nuevas Estadísticas
   // Nota: pendingCount incluye PENDING y UPLOADED
-  const pendingCount = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
-  const rejectedCount = payments.filter(p => p.status === PaymentStatus.REJECTED).length;
+  const pendingCount = (payments || []).filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED).length;
+  const rejectedCount = (payments || []).filter(p => p.status === PaymentStatus.REJECTED).length;
 
-  const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED);
+  const approvedPayments = (payments || []).filter(p => p.status === PaymentStatus.APPROVED);
   const totalApproved = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
   const averagePayment = approvedPayments.length > 0 ? totalApproved / approvedPayments.length : 0;
 
   // Budget Logic
   const MONTHLY_BUDGET = 6000;
   const budgetUtilization = (totalApproved / MONTHLY_BUDGET) * 100;
-  const overBudgetPayments = payments.filter(p => p.isOverBudget);
-  const recentPayments = [...payments]
+  const overBudgetPayments = (payments || []).filter(p => p.isOverBudget);
+  const recentPayments = [...(payments || [])]
     .sort((a, b) => {
       const dateA = new Date(a.submittedDate || a.dueDate).getTime();
       const dateB = new Date(b.submittedDate || b.dueDate).getTime();
@@ -425,24 +419,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
-        </div>
-
-        {/* Card 3: Total Liabilities */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:shadow-md transition-all">
-           <div className="relative z-10">
-            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-medium mb-2">
-              <AlertCircle size={18} className="text-orange-500" />
-              Pasivos Laborales
-            </div>
-            <div className="text-3xl font-bold text-slate-950 dark:text-slate-50">${totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-            <div className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
-              Bs. {(totalLiabilities * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-             <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-semibold mt-3 bg-orange-50 dark:bg-orange-900/20 w-fit px-2 py-1 rounded-lg">
-              SSO, LPH, INCES
-            </div>
-          </div>
-           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50 group-hover:scale-110 transition-transform"></div>
         </div>
 
         {/* Card 4: Rejected Count */}

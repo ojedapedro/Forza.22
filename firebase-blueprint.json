@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "hikvision_device": {
+      "title": "Dispositivo Hikvision",
+      "description": "Configuración y estado de terminales de control de acceso Hikvision",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nombre descriptivo del equipo" },
+        "ip": { "type": "string", "description": "Dirección IP o Host" },
+        "port": { "type": "number", "description": "Puerto ISAPI (por defecto 80)" },
+        "status": { "type": "string", "enum": ["online", "offline"], "description": "Último estado conocido" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "location": { "type": "string", "description": "Ubicación física (ej: Recepción Norte)" }
+      },
+      "required": ["name", "ip"]
+    },
+    "hikvision_event": {
+      "title": "Evento de Acceso",
+      "description": "Registro de eventos recibidos de los dispositivos Hikvision",
+      "type": "object",
+      "properties": {
+        "deviceId": { "type": "string", "description": "ID del dispositivo de origen" },
+        "deviceName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "employeeId": { "type": "string", "description": "ID del empleado (si aplica)" },
+        "employeeName": { "type": "string" },
+        "eventType": { "type": "string", "description": "Tipo de evento (Access Granted, Access Denied, Face Recognized)" },
+        "photoUrl": { "type": "string", "description": "URL de la captura facial si está disponible" },
+        "score": { "type": "number", "description": "Puntaje de coincidencia facial" }
+      },
+      "required": ["deviceId", "timestamp", "eventType"]
+    }
+  },
+  "firestore": {
+    "/hikvision_devices/{deviceId}": {
+      "schema": "hikvision_device",
+      "description": "Colección de dispositivos configurados"
+    },
+    "/hikvision_events/{eventId}": {
+      "schema": "hikvision_event",
+      "description": "Log histórico de eventos de acceso"
+    }
+  }
+}

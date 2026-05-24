@@ -6,17 +6,30 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand-50: #f0f9ff;
-  --color-brand-100: #e0f2fe;
-  --color-brand-200: #bae6fd;
-  --color-brand-300: #7dd3fc;
-  --color-brand-400: #38bdf8;
-  --color-brand-500: #0ea5e9;
-  --color-brand-600: #0284c7;
-  --color-brand-700: #0369a1;
-  --color-brand-800: #075985;
-  --color-brand-900: #0c4a6e;
-  --color-brand-950: #082f49;
+  /* Azul Metalizado (Metallic Blue) Palette */
+  --color-brand-50: #f2f8fe;
+  --color-brand-100: #e0f0fd;
+  --color-brand-200: #b5daf9;
+  --color-brand-300: #7ebbf5;
+  --color-brand-400: #4998ed;
+  --color-brand-500: #207ce5;
+  --color-brand-600: #1a66c4;
+  --color-brand-700: #1551a3;
+  --color-brand-800: #103c80;
+  --color-brand-900: #0a2754;
+  --color-brand-950: #05142b;
+
+  --color-blue-50: #f2f8fe;
+  --color-blue-100: #e0f0fd;
+  --color-blue-200: #b5daf9;
+  --color-blue-300: #7ebbf5;
+  --color-blue-400: #4998ed;
+  --color-blue-500: #207ce5;
+  --color-blue-600: #1a66c4;
+  --color-blue-700: #1551a3;
+  --color-blue-800: #103c80;
+  --color-blue-900: #0a2754;
+  --color-blue-950: #05142b;
 }
 
 @layer base {

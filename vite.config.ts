@@ -18,8 +18,13 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
       ],
-      optimizeDeps: {
-        include: ['react', 'react-dom']
+      build: {
+        rollupOptions: {
+          input: {
+            main: path.resolve(__dirname, 'index.html'),
+            payroll: path.resolve(__dirname, 'payroll.html'),
+          },
+        },
       },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
@@ -28,8 +33,7 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, 'src'),
-        },
-        dedupe: ['react', 'react-dom']
+        }
       }
     };
 });

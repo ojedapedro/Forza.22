@@ -1,11 +1,12 @@
 import express from 'express';
 
-console.log('🚀 [Server] server.tsx cargado');
+console.log('🚀 [Server] server.ts cargado');
 console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import fs from 'fs';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { checkAndSendNotifications } from './src/server/notifications';
@@ -13,7 +14,7 @@ import { checkAndSendNotifications } from './src/server/notifications';
 // Import API handlers
 import pingHandler from './src/api/ping.ts';
 import createPaymentIntentHandler from './src/api/create-payment-intent.ts';
-import sendEmailsHandler from './src/api/payroll/send-emails.ts';
+import sendEmailsHandler from './src/modules/payroll/api/send-emails.ts';
 import sendEmailHandler from './src/api/notifications/send-email.ts';
 import whatsappCheckHandler from './src/api/notifications/whatsapp/check.ts';
 import whatsappSendHandler from './src/api/notifications/whatsapp/send.ts';
@@ -21,9 +22,6 @@ import exchangeRateHandler from './src/api/exchange-rate.ts';
 import hikvisionWebhookHandler from './src/api/hikvision/webhook.ts';
 import hikvisionStatusHandler from './src/api/hikvision/status.ts';
 import hikvisionControlHandler from './src/api/hikvision/control.ts';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function startServer() {
   console.log(`🚀 [Server] Iniciando servidor Express... (${new Date().toISOString()})`);
@@ -36,6 +34,7 @@ async function startServer() {
     }
   });
 
+  // En AI Studio usamos el puerto 3000, en deploys externos respetamos la variable PORT
   const PORT = Number(process.env.PORT) || 3000;
 
   // Socket.IO Logic
@@ -59,6 +58,8 @@ async function startServer() {
   });
 
   app.use(express.json({ limit: '50mb' }));
+  app.use(express.text({ type: ['application/xml', 'text/xml'], limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
   app.use(session({
     secret: process.env.SESSION_SECRET || 'fiscal-control-secret',
@@ -110,10 +111,14 @@ async function startServer() {
   });
 
   // Vite middleware
-  const isProd = process.env.NODE_ENV === 'production';
-  console.log(`🚀 [Server] Modo: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
+  // En producción (Cloud Run, Vercel, etc.) NODE_ENV debería estar seteado.
+  // Si no está seteado, pero existe la carpeta dist, asumimos producción.
+  const isProd = process.env.NODE_ENV === 'production' || (fs.existsSync(path.join(process.cwd(), 'dist')) && process.env.NODE_ENV !== 'development');
+  
+  console.log(`🚀 [Server] Modo detectado: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'} (NODE_ENV: ${process.env.NODE_ENV || 'no definido'})`);
 
   if (!isProd) {
+    console.log('📦 [Server] Cargando Vite middleware...');
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },

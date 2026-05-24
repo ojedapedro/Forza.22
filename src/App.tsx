@@ -10,7 +10,6 @@ import { CalendarView } from './components/CalendarView';
 import { NotificationsView } from './components/NotificationsView';
 import { Login } from './components/Login'; 
 import { UserManagement } from './components/UserManagement';
-import { PayrollModule } from './components/PayrollModule';
 import { EvaluationModule } from './components/EvaluationModule';
 import { PredictiveDashboard } from './components/PredictiveDashboard';
 import { Dashboard } from './components/Dashboard';
@@ -18,7 +17,8 @@ import { StoreManagement } from './components/StoreManagement';
 import { InvoicingModule } from './components/InvoicingModule';
 import { ChatCenter } from './components/ChatCenter';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Payment, PaymentStatus, Role, AuditLog, User, Category, PayrollEntry, Employee, BudgetEntry, SystemSettings, Store } from './types';
+import { AdminControlPanel } from './components/AdminControlPanel';
+import { Payment, PaymentStatus, Role, AuditLog, User, Category, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from './services/api';
@@ -36,16 +36,27 @@ import * as pdfjsLib from 'pdfjs-dist';
 const PDF_JS_VERSION = pdfjsLib.version;
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${PDF_JS_VERSION}/build/pdf.worker.min.mjs`;
 
-interface AppProps {}
+interface AppProps {
+  user?: User | null;
+}
 
-function App({}: AppProps = {}) {
-  console.log("App Version: 2.2 - Categoría Fiscal Update");
+function App({ user }: AppProps = {}) {
+  // App Version: 2.2.1 - Categoría Fiscal Update
+  console.log("App Version: 2.2.1 - Categoría Fiscal Update");
   // --- AUTH STATE ---
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(user || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!user);
+  const [isAuthReady, setIsAuthReady] = useState(!!user);
 
   useEffect(() => {
+    // If user is provided via props, we don't need a listener here
+    if (user) {
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      setIsAuthReady(true);
+      return;
+    }
+
     const unsubscribe = authService.onAuthStateChanged((user) => {
       setCurrentUser(user);
       setIsAuthenticated(!!user);
@@ -53,15 +64,13 @@ function App({}: AppProps = {}) {
     });
     
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // --- APP STATE ---
   const [currentView, setCurrentView] = useState('dashboard');
 
   // --- MOBILE & PWA STATE ---
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [budgets, setBudgets] = useState<BudgetEntry[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -97,10 +106,6 @@ function App({}: AppProps = {}) {
   const PAGE_SIZE = 20;
   const [lastVisiblePayment, setLastVisiblePayment] = useState<any>(null);
   const [hasMorePayments, setHasMorePayments] = useState(true);
-  const [lastVisiblePayroll, setLastVisiblePayroll] = useState<any>(null);
-  const [hasMorePayroll, setHasMorePayroll] = useState(true);
-  const [lastVisibleEmployee, setLastVisibleEmployee] = useState<any>(null);
-  const [hasMoreEmployees, setHasMoreEmployees] = useState(true);
 
   // PWA Push Notification on Open
   useEffect(() => {
@@ -191,7 +196,8 @@ function App({}: AppProps = {}) {
 
   const getInitialView = (role: Role) => {
     switch (role) {
-      case Role.SUPER_ADMIN: return 'settings';
+      case Role.SUPER_ADMIN: return 'admin-control';
+      case Role.ADMIN: return 'admin-control';
       case Role.AUDITOR: return 'approvals';
       case Role.PRESIDENT: return 'reports';
       default: return 'payments';
@@ -269,105 +275,6 @@ function App({}: AppProps = {}) {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
-  };
-
-  const handleAddPayrollEntry = async (entry: Omit<PayrollEntry, 'id' | 'submittedDate'>) => {
-    setIsLoading(true);
-    const newEntry: PayrollEntry = {
-      ...entry,
-      id: `PAY-${Date.now()}`,
-      submittedDate: new Date().toISOString()
-    };
-    
-    try {
-      await firestoreService.createPayrollEntry(newEntry);
-      setPayrollEntries([newEntry, ...payrollEntries]);
-      
-      // Notificar al empleado
-      const emp = employees.find(e => e.id === newEntry.employeeId);
-      if (emp) {
-        notificationService.notifyPayrollReceipt(newEntry, emp, settings);
-      }
-
-      setNotification('✅ Nómina cargada exitosamente');
-      return newEntry;
-    } catch (error) {
-      setNotification('❌ Error guardando nómina');
-      throw error;
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleUpdatePayrollEntry = async (entry: PayrollEntry) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.updatePayrollEntry(entry);
-      setPayrollEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
-      setNotification('✅ Nómina actualizada');
-    } catch (error) {
-      setNotification('❌ Error actualizando nómina');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleDeletePayrollEntry = async (id: string) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.deletePayrollEntry(id);
-      setPayrollEntries(payrollEntries.filter(e => e.id !== id));
-      setNotification('🗑️ Registro de nómina eliminado');
-    } catch (error) {
-      setNotification('❌ Error eliminando registro de nómina');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleAddEmployee = async (employee: Employee) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.createEmployee(employee);
-      setEmployees(prev => [...prev, employee]);
-      setNotification('✅ Expediente de empleado creado');
-    } catch (error) {
-      setNotification('❌ Error guardando expediente');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleUpdateEmployee = async (employee: Employee) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.updateEmployee(employee);
-      setEmployees(prev => prev.map(e => e.id === employee.id ? employee : e));
-      setNotification('✅ Expediente actualizado');
-    } catch (error) {
-      setNotification('❌ Error actualizando expediente');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
-
-  const handleDeleteEmployee = async (id: string) => {
-    setIsLoading(true);
-    try {
-      await firestoreService.deleteEmployee(id);
-      setEmployees(prev => prev.filter(e => e.id !== id));
-      setNotification('🗑️ Expediente eliminado');
-    } catch (error) {
-      setNotification('❌ Error eliminando expediente');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
   };
 
   const handleAddBudget = async (budget: BudgetEntry) => {
@@ -480,10 +387,8 @@ function App({}: AppProps = {}) {
                            currentUser.role === Role.PRESIDENT ||
                            currentUser.role === Role.AUDITOR;
 
-      const [paymentsRes, employeesRes, payrollRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
+      const [paymentsRes, budgetsData, settingsData, usersData, storesData] = await Promise.all([
         firestoreService.getPayments(PAGE_SIZE),
-        firestoreService.getEmployees(PAGE_SIZE),
-        firestoreService.getPayrollEntries(PAGE_SIZE),
         firestoreService.getBudgets(),
         firestoreService.getSettings(),
         canManageUsers ? firestoreService.getUsers() : Promise.resolve([]),
@@ -499,14 +404,6 @@ function App({}: AppProps = {}) {
       setPayments(paymentsRes.payments);
       setLastVisiblePayment(paymentsRes.lastVisible);
       setHasMorePayments(paymentsRes.payments.length === PAGE_SIZE);
-
-      setEmployees(employeesRes.employees);
-      setLastVisibleEmployee(employeesRes.lastVisible);
-      setHasMoreEmployees(employeesRes.employees.length === PAGE_SIZE);
-
-      setPayrollEntries(payrollRes.entries);
-      setLastVisiblePayroll(payrollRes.lastVisible);
-      setHasMorePayroll(payrollRes.entries.length === PAGE_SIZE);
 
       setBudgets(budgetsData);
       setSettings(settingsData);
@@ -561,36 +458,6 @@ function App({}: AppProps = {}) {
       setHasMorePayments(res.payments.length === PAGE_SIZE);
     } catch (error) {
       setNotification('❌ Error cargando más pagos');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMoreEmployees = async () => {
-    if (!hasMoreEmployees || isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await firestoreService.getEmployees(PAGE_SIZE, lastVisibleEmployee);
-      setEmployees(prev => [...prev, ...res.employees]);
-      setLastVisibleEmployee(res.lastVisible);
-      setHasMoreEmployees(res.employees.length === PAGE_SIZE);
-    } catch (error) {
-      setNotification('❌ Error cargando más empleados');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMorePayroll = async () => {
-    if (!hasMorePayroll || isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await firestoreService.getPayrollEntries(PAGE_SIZE, lastVisiblePayroll);
-      setPayrollEntries(prev => [...prev, ...res.entries]);
-      setLastVisiblePayroll(res.lastVisible);
-      setHasMorePayroll(res.entries.length === PAGE_SIZE);
-    } catch (error) {
-      setNotification('❌ Error cargando más nóminas');
     } finally {
       setIsLoading(false);
     }
@@ -1155,6 +1022,9 @@ function App({}: AppProps = {}) {
   const userStoreIds = isGlobalUser ? [] : currentUser?.storeIds || [];
   
   const filteredPayments = payments.filter(p => {
+    // Exclude Payroll from Finance module
+    if (p.category === Category.PAYROLL) return false;
+
     // Filter by store
     if (userStoreIds.length > 0 && !userStoreIds.includes(p.storeId)) return false;
     
@@ -1186,9 +1056,11 @@ function App({}: AppProps = {}) {
     
     return true;
   });
-  const filteredPayrollEntries = userStoreIds.length > 0 ? payrollEntries.filter(p => userStoreIds.includes(p.storeId)) : payrollEntries;
-  const filteredEmployees = userStoreIds.length > 0 ? employees.filter(e => userStoreIds.includes(e.storeId)) : employees;
-  const filteredBudgets = userStoreIds.length > 0 ? budgets.filter(b => userStoreIds.includes(b.storeId)) : budgets;
+  const filteredBudgets = budgets.filter(b => {
+    if (b.category === Category.PAYROLL) return false;
+    if (userStoreIds.length > 0 && !userStoreIds.includes(b.storeId)) return false;
+    return true;
+  });
   const filteredStores = userStoreIds.length > 0 ? stores.filter(s => userStoreIds.includes(s.id)) : stores;
 
   const renderContent = () => {
@@ -1204,12 +1076,22 @@ function App({}: AppProps = {}) {
     }
 
     switch (currentView) {
+      case 'admin-control':
+        return (
+          <AdminControlPanel
+            payments={filteredPayments}
+            users={users}
+            stores={filteredStores}
+            budgets={filteredBudgets}
+            currentUser={currentUser}
+            onNavigate={setCurrentView}
+          />
+        );
       case 'dashboard':
         return (
           <Dashboard 
             payments={filteredPayments}
             budgets={filteredBudgets}
-            payrollEntries={filteredPayrollEntries}
             onNewPayment={() => setCurrentView('payments')}
             onEditPayment={(payment) => {
               setEditingPayment(payment);
@@ -1369,15 +1251,14 @@ function App({}: AppProps = {}) {
           />
         );
       case 'reports':
-        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={filteredBudgets} payrollEntries={filteredPayrollEntries} employees={filteredEmployees} stores={filteredStores} />;
+        return <Reports payments={filteredPayments} currentUser={currentUser} budgets={filteredBudgets} stores={filteredStores} />;
       case 'presidency':
-        return <PresidencyDashboard payments={filteredPayments} payrollEntries={filteredPayrollEntries} budgets={filteredBudgets} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
+        return <PresidencyDashboard payments={filteredPayments} budgets={filteredBudgets} currentUser={currentUser} onApproveAll={handleApproveAll} stores={filteredStores} />;
       case 'network':
         return <StoreStatus payments={filteredPayments} budgets={filteredBudgets} userStoreIds={userStoreIds} stores={filteredStores} />;
       case 'calendar':
         return <CalendarView 
           payments={filteredPayments} 
-          payrollEntries={filteredPayrollEntries} 
           budgets={filteredBudgets} 
           onAddBudget={handleAddBudget} 
           onDeleteBudget={handleDeleteBudget} 
@@ -1385,26 +1266,6 @@ function App({}: AppProps = {}) {
           currentUser={currentUser} 
           stores={filteredStores}
         />;
-      case 'payroll':
-        return (
-          <PayrollModule 
-            entries={filteredPayrollEntries} 
-            employees={filteredEmployees}
-            onAddEntry={handleAddPayrollEntry} 
-            onUpdateEntry={handleUpdatePayrollEntry}
-            onDeleteEntry={handleDeletePayrollEntry} 
-            onAddEmployee={handleAddEmployee}
-            onUpdateEmployee={handleUpdateEmployee}
-            onDeleteEmployee={handleDeleteEmployee}
-            currentUser={currentUser}
-            settings={settings}
-            onLoadMorePayroll={loadMorePayroll}
-            hasMorePayroll={hasMorePayroll}
-            onLoadMoreEmployees={loadMoreEmployees}
-            hasMoreEmployees={hasMoreEmployees}
-            stores={filteredStores}
-          />
-        );
       case 'invoices':
         return <InvoicingModule currentUser={currentUser} stores={filteredStores} />;
       case 'evaluation':
@@ -1713,12 +1574,12 @@ function App({}: AppProps = {}) {
 
   useEffect(() => {
     if (!currentUser) return;
-    const allViews = ['payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'payroll', 'invoices', 'presidency', 'evaluation', 'predictive', 'chat'];
+    const allViews = ['admin-control', 'payments', 'network', 'calendar', 'notifications', 'settings', 'approvals', 'reports', 'invoices', 'presidency', 'evaluation', 'predictive', 'chat'];
     const allowedViews: Record<Role, string[]> = {
       [Role.SUPER_ADMIN]: allViews,
-      [Role.ADMIN]: ['payments', 'network', 'calendar', 'notifications', 'settings', 'payroll', 'invoices', 'reports', 'evaluation', 'chat'],
+      [Role.ADMIN]: ['admin-control', 'payments', 'network', 'calendar', 'notifications', 'settings', 'invoices', 'reports', 'evaluation', 'chat'],
       [Role.AUDITOR]: ['approvals', 'calendar', 'notifications', 'settings', 'evaluation', 'predictive', 'chat'],
-      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'payroll', 'invoices', 'presidency', 'predictive', 'chat']
+      [Role.PRESIDENT]: ['reports', 'network', 'notifications', 'settings', 'invoices', 'presidency', 'predictive', 'chat']
     };
     if (!allowedViews[currentUser.role].includes(currentView)) {
       setCurrentView(getInitialView(currentUser.role));
@@ -1727,26 +1588,19 @@ function App({}: AppProps = {}) {
 
   if (!isAuthReady) {
     return (
-      <ThemeProvider>
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
           <Loader2 className="w-12 h-12 text-brand-500 animate-spin" />
         </div>
-      </ThemeProvider>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <ThemeProvider>
         <Login onLoginSuccess={handleLogin} />
-      </ThemeProvider>
     );
   }
 
   return (
-    <ThemeProvider>
-      <ErrorBoundary>
-        <ExchangeRateProvider exchangeRate={exchangeRate}>
         <div className="flex bg-[#111827] dark:bg-slate-950 min-h-screen font-sans overflow-hidden">
           
           {/* Sidebar Responsive */}
@@ -1843,11 +1697,11 @@ function App({}: AppProps = {}) {
                   >
                       <Menu size={24} />
                   </button>
-                  <span className="font-bold text-lg text-slate-900 dark:text-white">Forza 22</span>
+                  <div className="h-8 flex-shrink-0 flex items-center justify-center">
+                    <img src={APP_LOGO_URL} alt="Forza Gerencia" className="h-8 w-auto object-contain" />
+                  </div>
                </div>
-               <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
-                   <img src={APP_LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-               </div>
+               <div className="w-8"></div>
             </div>
 
             {/* Loading Overlay */}
@@ -1894,9 +1748,6 @@ function App({}: AppProps = {}) {
             </div>
           </main>
         </div>
-      </ExchangeRateProvider>
-    </ErrorBoundary>
-  </ThemeProvider>
   );
 }
 

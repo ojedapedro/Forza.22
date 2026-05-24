@@ -942,47 +942,59 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
-    if (selectedFiles.length > 0) {
-        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-        const limitMB = 10;
-        const maxSize = limitMB * 1024 * 1024;
-        
-        const validFiles: File[] = [];
-        const newPreviewUrls: string[] = [];
-
-        for (const file of selectedFiles) {
-            if (!allowedTypes.includes(file.type)) {
-                setErrors(prev => ({...prev, file: `Formato no permitido para ${file.name}. Use PDF, JPG o PNG.`}));
-                continue;
-            }
-            if (file.size > maxSize) {
-                setErrors(prev => ({...prev, file: `${file.name} es muy grande. El límite es ${limitMB}MB.`}));
-                continue;
-            }
-            validFiles.push(file);
-            if (file.type.startsWith('image/')) {
-                newPreviewUrls.push(URL.createObjectURL(file));
-            }
-        }
-
-        if (validFiles.length > 0) {
-            setIsFileScanning(true);
-            setUploadProgress(0);
+    try {
+        const selectedFiles = Array.from(e.target.files || []);
+        if (selectedFiles.length > 0) {
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+            const limitMB = 10;
+            const maxSize = limitMB * 1024 * 1024;
             
-            const duration = 1000;
-            const steps = 10;
-            const interval = duration / steps;
-            for (let i = 0; i <= 100; i += (100 / steps)) {
-                setUploadProgress(Math.min(100, Math.round(i)));
-                await new Promise(resolve => setTimeout(resolve, interval));
+            const validFiles: File[] = [];
+            const newPreviewUrls: string[] = [];
+
+            for (const file of selectedFiles) {
+                if (!allowedTypes.includes(file.type)) {
+                    throw new Error(`Formato no permitido para ${file.name}. Use PDF, JPG o PNG.`);
+                }
+                if (file.size > maxSize) {
+                    throw new Error(`${file.name} es muy grande. El límite es ${limitMB}MB.`);
+                }
+                validFiles.push(file);
+                if (file.type.startsWith('image/')) {
+                    newPreviewUrls.push(URL.createObjectURL(file));
+                }
             }
 
-            setFiles(prev => [...prev, ...validFiles]);
-            setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
-            setIsFileScanning(false);
-            setErrors(prev => { const newErrs = {...prev}; delete newErrs.file; return newErrs; });
+            if (validFiles.length > 0) {
+                setIsFileScanning(true);
+                setUploadProgress(0);
+                
+                const duration = 1000;
+                const steps = 10;
+                const interval = duration / steps;
+                for (let i = 0; i <= 100; i += (100 / steps)) {
+                    setUploadProgress(Math.min(100, Math.round(i)));
+                    await new Promise(resolve => setTimeout(resolve, interval));
+                }
+
+                setFiles(prev => [...prev, ...validFiles]);
+                setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+                setIsFileScanning(false);
+                setErrors(prev => { const newErrs = {...prev}; delete newErrs.file; return newErrs; });
+                if (e.target) e.target.value = '';
+            }
         }
+    } catch (error: any) {
+        console.error("Error al procesar los archivos:", error);
+        setErrors(prev => ({
+            ...prev,
+            file: error.message || "Ha ocurrido un error al cargar el archivo. Puede continuar sin él si no es obligatorio."
+        }));
+        setIsFileScanning(false);
+        setUploadProgress(0);
+        setFiles([]);
+        setPreviewUrls([]);
+        if (e.target) e.target.value = '';
     }
   };
 
@@ -1020,7 +1032,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
     if (!dueDate) newErrors.dueDate = "Fecha requerida";
     if (!paymentDate) newErrors.paymentDate = "Fecha requerida";
     if (!specificType) newErrors.specificType = "Descripción requerida";
-    if (files.length === 0 && attachments.length === 0 && !isFileScanning) newErrors.file = "Al menos un comprobante es requerido";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -1267,9 +1278,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                 className={`w-full appearance-none bg-slate-50 dark:bg-slate-950/50 border ${errors.store ? 'border-red-500/50 ring-1 ring-red-500/20' : 'border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50'} text-slate-900 dark:text-white text-sm font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer`}
                             >
                                 <option value="" className="bg-slate-50 dark:bg-slate-900">Seleccionar ubicación...</option>
-                                {category === Category.PAYROLL && (!currentUser?.storeIds || currentUser.storeIds.length === 0) && (
-                                    <option value="NATIONAL" className="bg-slate-50 dark:bg-slate-900">Nacional (Cobertura Nacional)</option>
-                                )}
                                 {(currentUser?.storeIds && currentUser.storeIds.length > 0 ? stores.filter(s => currentUser.storeIds!.includes(s.id)) : stores).map(s => (
                                     <option key={s.id} value={s.id} className="bg-slate-50 dark:bg-slate-900">{s.name}</option>
                                 ))}
@@ -1292,7 +1300,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         { id: Category.MUNICIPAL_TAX, desc: 'Impuestos y tasas correspondientes a la alcaldía (Patentes, Inmuebles, Aseo).' },
                                         { id: Category.OBJECT, desc: 'Certificaciones y registros relacionados con el objeto de la empresa (SENCAMER, RACDA).' },
                                         { id: Category.INSTITUTIONS, desc: 'Trámites ante instituciones nacionales y permisos sanitarios (SNC, RUPDAE, FONACIT, INSALUD).' },
-                                        { id: Category.PAYROLL, desc: 'Nómina, pasivos laborales y contribuciones patronales (IVSS, BANAVIH, INCES).' },
                                         { id: Category.TRANSPORT, desc: 'Documentación legal de choferes, vehículos y control de mantenimiento.' },
                                         { id: Category.UTILITY, desc: 'Servicios públicos, mantenimiento de sede, alquileres e insumos de limpieza.' },
                                         { id: Category.SENIAT_DECLARATIONS, desc: 'Cumplimiento de obligaciones tributarias SENIAT (IVA, ISLR, IGTF, IGP).' },
@@ -1312,7 +1319,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             { id: Category.MUNICIPAL_TAX, label: 'Alcaldía', icon: Building2 },
                             { id: Category.OBJECT, label: 'Objeto', icon: FileText },
                             { id: Category.INSTITUTIONS, label: 'Inst. Nac.', icon: Landmark },
-                            { id: Category.PAYROLL, label: 'RRHH', icon: Users },
                             { id: Category.TRANSPORT, label: 'Transporte', icon: FileText },
                             { id: Category.UTILITY, label: 'Servicios', icon: Zap },
                             { id: Category.SENIAT_DECLARATIONS, label: 'SENIAT Decl.', icon: FileText },

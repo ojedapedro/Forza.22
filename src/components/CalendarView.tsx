@@ -19,13 +19,12 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Payment, PaymentStatus, Category, PayrollEntry, BudgetEntry, User, Role, Store } from '../types';
+import { Payment, PaymentStatus, Category, BudgetEntry, User, Role, Store } from '../types';
 import { formatDate } from '../utils';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface CalendarViewProps {
   payments: Payment[];
-  payrollEntries?: PayrollEntry[];
   budgets: BudgetEntry[];
   onAddBudget: (budget: BudgetEntry) => Promise<void>;
   onDeleteBudget: (id: string) => Promise<void>;
@@ -106,7 +105,6 @@ const TAX_RULES: StatutoryDeadline[] = [
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ 
   payments, 
-  payrollEntries = [], 
   budgets, 
   onAddBudget, 
   onDeleteBudget,
@@ -116,7 +114,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<'fiscal' | 'payroll'>('fiscal');
   const [selectedStoreId, setSelectedStoreId] = useState<string>(
     currentUser?.storeIds && currentUser.storeIds.length > 0 
       ? currentUser.storeIds[0] 
@@ -203,69 +200,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return rule.day === day;
     });
 
-    // Obligaciones dinámicas de nómina (del mes anterior)
-    const dynamicDeadlines: (StatutoryDeadline & { amount?: number })[] = [];
-    
-    // El mes anterior en formato YYYY-MM
-    const prevMonthDate = new Date(year, month - 1, 1);
-    const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    // Filtrar nóminas del mes anterior
-    const prevMonthPayroll = payrollEntries.filter(e => e.month === prevMonthStr);
-    
-    if (prevMonthPayroll.length > 0) {
-      // Sumar pasivos
-      let ssoTotal = 0;
-      let lphTotal = 0;
-      let incesTotal = 0;
-      
-      prevMonthPayroll.forEach(entry => {
-        entry.employerLiabilities.forEach(l => {
-          const name = l.name.toLowerCase();
-          if (name.includes('sso') || name.includes('seguro social')) ssoTotal += l.amount;
-          else if (name.includes('lph') || name.includes('vivienda')) lphTotal += l.amount;
-          else if (name.includes('inces')) incesTotal += l.amount;
-        });
-      });
-
-      if (ssoTotal > 0 && day === 15) {
-        dynamicDeadlines.push({
-          id: `dyn-sso-${prevMonthStr}`,
-          day: 15,
-          title: 'Aporte Patronal SSO',
-          category: Category.PAYROLL,
-          description: `Pago Seguro Social correspondiente a ${prevMonthStr}`,
-          frequency: 'Mensual',
-          amount: ssoTotal
-        });
-      }
-      
-      if (lphTotal > 0 && day === 10) {
-        dynamicDeadlines.push({
-          id: `dyn-lph-${prevMonthStr}`,
-          day: 10,
-          title: 'Aporte Patronal LPH',
-          category: Category.PAYROLL,
-          description: `Pago Ley de Política Habitacional correspondiente a ${prevMonthStr}`,
-          frequency: 'Mensual',
-          amount: lphTotal
-        });
-      }
-      
-      if (incesTotal > 0 && day === 10) {
-        dynamicDeadlines.push({
-          id: `dyn-inces-${prevMonthStr}`,
-          day: 10,
-          title: 'Aporte Patronal INCES',
-          category: Category.PAYROLL,
-          description: `Pago INCES correspondiente a ${prevMonthStr}`,
-          frequency: 'Mensual',
-          amount: incesTotal
-        });
-      }
-    }
-
-    return [...staticDeadlines, ...dynamicDeadlines];
+    return [...staticDeadlines];
   };
 
   // Efecto para actualizar el panel lateral al cambiar fecha
@@ -414,12 +349,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const hasPending = dayPayments.some(p => p.status === PaymentStatus.PENDING);
       const hasActivity = dayPayments.length > 0 || dayDeadlines.length > 0 || dayBudgets.length > 0;
 
-      // Datos de Nómina
-      const isPayrollDay = day === 15 || day === lastDay;
-      const monthPayroll = payrollEntries.filter(e => e.month === monthStr);
-      const payrollStatus = monthPayroll.length > 0 
-        ? (monthPayroll.every(e => e.status === 'PROCESADO') ? 'PROCESADO' : 'PENDIENTE')
-        : 'PENDIENTE';
+      // Datos de Nómina eliminados para independencia de módulos
       
       days.push(
         <div 
@@ -443,74 +373,47 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           {/* Indicadores Visuales */}
           <div className="flex flex-col gap-1 mt-1">
-            {viewMode === 'fiscal' ? (
-              <>
-                {/* Indicadores de Pagos Reales & Presupuestos */}
-                <div className="flex gap-1 flex-wrap">
-                    {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
-                    {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
-                    {dayPayments.some(p => p.status === PaymentStatus.PAID) && 
-                        <div className="w-2 h-2 rounded-full bg-green-500" title="Pago Realizado"></div>
-                    }
-                    {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !dayPayments.some(p => p.status === PaymentStatus.PAID) && !hasOverdue && !hasPending && 
-                        <div className="w-2 h-2 rounded-full bg-blue-500" title="Aprobado"></div>
-                    }
-                    {dayBudgets.length > 0 && (
-                        <div 
-                          className={`w-2 h-2 rounded-full ${
-                             dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'bg-amber-400 animate-pulse' : 
-                             dayBudgets.some(b => b.title.includes('[APROBADO]')) ? 'bg-emerald-500' : 
-                             dayBudgets.some(b => b.title.includes('[PROGRAMADO]')) ? 'bg-blue-500' : 
-                             'bg-cyan-400'
-                          }`} 
-                          title={
-                             dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'Propuesta de Pago' : 
-                             dayBudgets.some(b => b.title.includes('[APROBADO]')) ? 'Presupuesto Aprobado' :
-                             dayBudgets.some(b => b.title.includes('[PROGRAMADO]')) ? 'Gasto Programado' :
-                             'Presupuesto Asignado'
-                          }
-                        ></div>
-                    )}
-                </div>
+            {/* Indicadores de Pagos Reales & Presupuestos */}
+            <div className="flex gap-1 flex-wrap">
+                {hasOverdue && <div className="w-2 h-2 rounded-full bg-red-500" title="Pago Vencido"></div>}
+                {hasPending && <div className="w-2 h-2 rounded-full bg-orange-400" title="Pago Pendiente"></div>}
+                {dayPayments.some(p => p.status === PaymentStatus.PAID) && 
+                    <div className="w-2 h-2 rounded-full bg-green-500" title="Pago Realizado"></div>
+                }
+                {dayPayments.some(p => p.status === PaymentStatus.APPROVED) && !dayPayments.some(p => p.status === PaymentStatus.PAID) && !hasOverdue && !hasPending && 
+                    <div className="w-2 h-2 rounded-full bg-blue-500" title="Aprobado"></div>
+                }
+                {dayBudgets.length > 0 && (
+                    <div 
+                      className={`w-2 h-2 rounded-full ${
+                          dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'bg-amber-400 animate-pulse' : 
+                          dayBudgets.some(b => b.title.includes('[APROBADO]')) ? 'bg-emerald-500' : 
+                          dayBudgets.some(b => b.title.includes('[PROGRAMADO]')) ? 'bg-blue-500' : 
+                          'bg-cyan-400'
+                      }`} 
+                      title={
+                          dayBudgets.some(b => b.title.includes('[PROPUESTA]')) ? 'Propuesta de Pago' : 
+                          dayBudgets.some(b => b.title.includes('[APROBADO]')) ? 'Presupuesto Aprobado' :
+                          dayBudgets.some(b => b.title.includes('[PROGRAMADO]')) ? 'Gasto Programado' :
+                          'Presupuesto Asignado'
+                      }
+                    ></div>
+                )}
+            </div>
 
-                {/* Indicadores de Reglas Fiscales (Alcaldía y Nómina) */}
-                {dayDeadlines.map((rule, idx) => (
-                    <div key={idx} className={`text-[10px] px-1.5 py-0.5 rounded truncate font-medium border flex items-center gap-1 ${
-                      rule.category === Category.PAYROLL 
-                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50'
-                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50'
-                    }`}>
-                        <Landmark size={8} />
-                        {rule.title}
-                    </div>
-                ))}
-                
-                {/* Texto de presupuesto si existe y no hay reglas que ocupen espacio */}
-                {dayBudgets.length > 0 && dayDeadlines.length === 0 && (
-                    <div className="text-[10px] text-cyan-600 dark:text-cyan-400 truncate font-medium px-1">
-                        ${dayBudgets.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()} (P)
-                    </div>
-                )}
-              </>
-            ) : (
-              /* Vista de Nómina */
-              <>
-                {isPayrollDay && (
-                  <div className={`text-[10px] px-1.5 py-1 rounded font-bold border flex items-center gap-1 ${
-                    payrollStatus === 'PROCESADO'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/50'
-                      : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50'
-                  }`}>
-                    {payrollStatus === 'PROCESADO' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
-                    {day === 15 ? '1ra Qna' : '2da Qna'}
-                  </div>
-                )}
-                {monthPayroll.length > 0 && isPayrollDay && (
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-1 px-1">
-                    ${(monthPayroll.reduce((acc, curr) => acc + curr.totalWorkerNet, 0) / 2).toLocaleString()}
-                  </div>
-                )}
-              </>
+            {/* Indicadores de Reglas Fiscales (Alcaldía) */}
+            {dayDeadlines.map((rule, idx) => (
+                <div key={idx} className={`text-[10px] px-1.5 py-0.5 rounded truncate font-medium border flex items-center gap-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50`}>
+                    <Landmark size={8} />
+                    {rule.title}
+                </div>
+            ))}
+            
+            {/* Texto de presupuesto si existe y no hay reglas que ocupen espacio */}
+            {dayBudgets.length > 0 && dayDeadlines.length === 0 && (
+                <div className="text-[10px] text-cyan-600 dark:text-cyan-400 truncate font-medium px-1">
+                    ${dayBudgets.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()} (P)
+                </div>
             )}
           </div>
         </div>
@@ -817,35 +720,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Calendar Grid Section */}
       <div className="flex-1 p-4 lg:p-8 flex flex-col h-full overflow-y-auto no-scrollbar">
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Calendario Fiscal</h1>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones, pagos y presupuestos.</p>
-            </div>
-            
-            {/* Toggle de Vista */}
-            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
-              <button 
-                onClick={() => setViewMode('fiscal')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  viewMode === 'fiscal' 
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                }`}
-              >
-                Fiscal
-              </button>
-              <button 
-                onClick={() => setViewMode('payroll')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  viewMode === 'payroll' 
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                }`}
-              >
-                Nómina
-              </button>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Calendario Fiscal</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Cronograma de obligaciones, pagos y presupuestos.</p>
           </div>
           <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 self-end sm:self-auto">
             <button onClick={prevMonth} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
@@ -879,24 +756,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         
         {/* Legend */}
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 dark:text-slate-400 px-2">
-            {viewMode === 'fiscal' ? (
-              <>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Pago Realizado</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Pago Aprobado</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Obligación Nómina</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Propuesta de Pago</div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Nómina Procesada</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Nómina Pendiente</div>
-                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Fecha de Pago (Quincena)</div>
-              </>
-            )}
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500"></span> Pago Vencido</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span> Pago Pendiente</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Pago Realizado</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Pago Aprobado</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Obligación Alcaldía</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> Presupuesto</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Propuesta de Pago</div>
         </div>
       </div>
 
@@ -914,69 +780,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
             
-            {/* Sección de Nómina (Solo en vista Nómina) */}
-            {viewMode === 'payroll' && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
-                  <DollarSign size={12} /> Detalle de Nómina
-                </h3>
-                {(() => {
-                  const monthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
-                  const monthPayroll = payrollEntries.filter(e => e.month === monthStr);
-                  const isPayrollDay = selectedDate.getDate() === 15 || selectedDate.getDate() === getDaysInMonth(selectedDate);
-                  
-                  if (!isPayrollDay && monthPayroll.length === 0) return <p className="text-xs text-slate-400 italic">No hay eventos de nómina para este día.</p>;
-
-                  return (
-                    <div className="space-y-3">
-                      {isPayrollDay && (
-                        <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="font-bold text-sm text-blue-700 dark:text-blue-300">
-                              {selectedDate.getDate() === 15 ? '1ra Quincena' : '2da Quincena'}
-                            </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                              monthPayroll.length > 0 && monthPayroll.every(e => e.status === 'PROCESADO')
-                                ? 'bg-green-200 text-green-800'
-                                : 'bg-orange-200 text-orange-800'
-                            }`}>
-                              {monthPayroll.length > 0 && monthPayroll.every(e => e.status === 'PROCESADO') ? 'PROCESADO' : 'PENDIENTE'}
-                            </span>
-                          </div>
-                          <div className="text-2xl font-black text-slate-800 dark:text-white">
-                            ${(monthPayroll.reduce((acc, curr) => acc + curr.totalWorkerNet, 0) / 2).toLocaleString()}
-                          </div>
-                          <p className="text-[10px] text-slate-500 mt-1">Monto estimado para {monthPayroll.length} trabajadores</p>
-                        </div>
-                      )}
-
-                      {monthPayroll.length > 0 && (
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                          <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">Trabajadores en Nómina</span>
-                          </div>
-                          <div className="max-h-60 overflow-y-auto">
-                            {monthPayroll.map(emp => (
-                              <div key={emp.id} className="p-3 border-b border-slate-50 dark:border-slate-800 last:border-0 flex justify-between items-center">
-                                <div>
-                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{emp.employeeName}</p>
-                                  <p className="text-[9px] text-slate-400">{emp.employeeId}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs font-bold text-slate-800 dark:text-white">${(emp.totalWorkerNet / 2).toLocaleString()}</p>
-                                  <p className={`text-[8px] font-bold ${emp.status === 'PROCESADO' ? 'text-green-500' : 'text-orange-500'}`}>{emp.status}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
             {/* Sección de Resumen de Presupuesto Mensual */}
             {monthlyComparison.length > 0 && (
                 <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
@@ -1028,27 +831,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
             )}
 
-            {/* Sección de Obligaciones Estatutarias y Nómina */}
+            {/* Sección de Obligaciones Estatutarias */}
             {dayEvents.deadlines.length > 0 && (
                 <div className="space-y-3">
                     <h3 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-2">
                         <Landmark size={12} /> Obligaciones y Recordatorios
                     </h3>
                     {dayEvents.deadlines.map((rule, idx) => (
-                        <div key={idx} className={`p-4 rounded-xl border ${
-                          rule.category === Category.PAYROLL
-                            ? 'border-orange-100 dark:border-orange-900/30 bg-orange-50 dark:bg-orange-900/10'
-                            : 'border-purple-100 dark:border-purple-900/30 bg-purple-50 dark:bg-purple-900/10'
-                        }`}>
+                        <div key={idx} className="p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 bg-purple-50 dark:bg-purple-900/10">
                             <div className="flex justify-between items-start mb-1">
-                                <span className={`font-bold text-sm ${
-                                  rule.category === Category.PAYROLL ? 'text-orange-700 dark:text-orange-300' : 'text-purple-700 dark:text-purple-300'
-                                }`}>{rule.title}</span>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                                  rule.category === Category.PAYROLL 
-                                    ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200'
-                                    : 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
-                                }`}>{rule.frequency}</span>
+                                <span className="font-bold text-sm text-purple-700 dark:text-purple-300">{rule.title}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200">{rule.frequency}</span>
                             </div>
                             <p className="text-xs text-slate-600 dark:text-slate-400">{rule.description}</p>
                             {rule.amount !== undefined && (
@@ -1056,9 +849,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 ${rule.amount.toLocaleString()}
                               </div>
                             )}
-                            <div className={`mt-2 flex items-center gap-1 text-[10px] font-medium ${
-                              rule.category === Category.PAYROLL ? 'text-orange-600 dark:text-orange-400' : 'text-purple-600 dark:text-purple-400'
-                            }`}>
+                            <div className="mt-2 flex items-center gap-1 text-[10px] font-medium text-purple-600 dark:text-purple-400">
                                 <AlertOctagon size={10} />
                                 Fecha Límite Estricta
                             </div>

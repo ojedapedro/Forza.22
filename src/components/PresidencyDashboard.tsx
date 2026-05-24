@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Payment, PaymentStatus, PayrollEntry, Category, User, Role, Store, BudgetEntry } from '../types';
+import { Payment, PaymentStatus, Category, User, Role, Store, BudgetEntry } from '../types';
 import { 
   DollarSign, TrendingUp, AlertTriangle, FileText, CheckCircle2, 
   AlertOctagon, Clock, XCircle, Building2, Filter, Users, 
@@ -13,14 +13,19 @@ import {
 
 interface PresidencyDashboardProps {
   payments: Payment[];
-  payrollEntries: PayrollEntry[];
   budgets: BudgetEntry[];
   currentUser?: User;
   onApproveAll?: () => void;
   stores: Store[];
 }
 
-export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ payments, payrollEntries, budgets, currentUser, onApproveAll, stores }) => {
+export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ 
+  payments = [], 
+  budgets = [], 
+  currentUser, 
+  onApproveAll, 
+  stores = [] 
+}) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
@@ -65,18 +70,6 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
     });
   }, [payments, selectedStore, startDate, endDate]);
 
-  const filteredPayroll = useMemo(() => {
-    return payrollEntries.filter(e => {
-      if (selectedStore !== 'all' && e.storeId !== selectedStore) return false;
-      
-      const eDate = new Date(e.submittedDate);
-      if (startDate && eDate < new Date(startDate)) return false;
-      if (endDate && eDate > new Date(endDate)) return false;
-      
-      return true;
-    });
-  }, [payrollEntries, selectedStore, startDate, endDate]);
-
   const filteredBudgets = useMemo(() => {
     return budgets.filter(b => {
       if (selectedStore !== 'all' && b.storeId !== selectedStore) return false;
@@ -103,14 +96,6 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
     .filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED)
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalPayrollCost = filteredPayroll.reduce((sum, e) => sum + e.totalEmployerCost, 0);
-  
-  // Calcular Pasivos Laborales
-  const totalLaborLiabilities = filteredPayroll.reduce((sum, e) => {
-    const liabilitiesSum = e.employerLiabilities?.reduce((lSum, l) => lSum + l.amount, 0) || 0;
-    return sum + liabilitiesSum;
-  }, 0);
-  
   const budgetUtilization = totalBudget > 0 ? ((totalApproved / totalBudget) * 100).toFixed(1) : '0.0';
   const budgetStatusBg = Number(budgetUtilization) > 100 ? 'bg-red-500/10' : Number(budgetUtilization) > 90 ? 'bg-amber-500/10' : 'bg-emerald-500/10';
   const budgetStatusColor = Number(budgetUtilization) > 100 ? 'text-red-400' : Number(budgetUtilization) > 90 ? 'text-amber-400' : 'text-emerald-400';
@@ -259,8 +244,6 @@ export const PresidencyDashboard: React.FC<PresidencyDashboardProps> = ({ paymen
           { label: 'Pagos Pendientes', value: totalPending, icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10' },
           { label: 'Pagos Vencidos', value: totalOverdue, icon: AlertOctagon, color: 'text-red-400', bg: 'bg-red-500/10', sub: `${overduePayments.length} pagos` },
           { label: 'Próximos (7d)', value: totalDueSoon, icon: Clock, color: 'text-orange-400', bg: 'bg-orange-500/10', sub: `${dueSoonPayments.length} pagos` },
-          { label: 'Costo Nómina', value: totalPayrollCost, icon: FileText, color: 'text-brand-400', bg: 'bg-brand-500/10' },
-          { label: 'Pasivos Laborales', value: totalLaborLiabilities, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
           { label: 'Tasa de Rechazo', value: rejectionRate, icon: XCircle, color: 'text-purple-400', bg: 'bg-purple-500/10', isPercent: true, sub: `${rejectedCount} devueltos` },
         ].map((card, idx) => (
           <div key={idx} className="glass-card glass-card-hover p-5 flex flex-col justify-between min-h-[120px]">

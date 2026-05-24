@@ -1,31 +1,28 @@
 import { Request, Response } from 'express';
-import axios from 'axios';
+import { adminDb } from '../../lib/firebase-admin';
 
 /**
- * Get Hikvision Device Status
- * Requires basic auth or Digest auth usually.
+ * Get Hikvision Devices Status
  */
 export default async function hikvisionStatusHandler(req: Request, res: Response) {
   try {
-    const { deviceIp, port = 80 } = req.query;
+    const { deviceId } = req.query;
 
-    if (!deviceIp) {
-      return res.status(400).json({ error: 'deviceIp is required' });
+    if (deviceId) {
+      const doc = await adminDb.collection('hikvision_devices').doc(deviceId as string).get();
+      if (!doc.exists) {
+        return res.status(404).json({ error: 'Device not found' });
+      }
+      return res.status(200).json(doc.data());
     }
 
-    // Nota: Esto requiere que el servidor tenga visibilidad de red hacia el dispositivo
-    // o que el dispositivo esté en una VPN/Red Local común.
-    // console.log(`🔍 [Hikvision] Consultando estado de: ${deviceIp}`);
+    // List all devices
+    const snapshot = await adminDb.collection('hikvision_devices').get();
+    const devices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Mock response for structure preparation
     res.status(200).json({
-      status: 'online',
-      deviceName: 'Hikvision Access Terminal',
-      lastSync: new Date().toISOString(),
-      details: {
-        model: 'DS-K1T341AM',
-        firmware: 'V2.2.3_build210512'
-      }
+      count: devices.length,
+      devices
     });
 
   } catch (error: any) {
