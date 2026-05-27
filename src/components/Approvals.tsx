@@ -319,19 +319,17 @@ export const Approvals: React.FC<ApprovalsProps> = ({
   };
 
   const openInNewTab = (url: string) => {
+    if (isPdf(url)) {
+        window.open(url, '_blank');
+        return;
+    }
     const win = window.open();
     if (win) {
-        // Usar iframe para PDF suele forzar el visor nativo del navegador
-        const isPDF = isPdf(url);
-        const content = isPDF 
-            ? `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`
-            : `<img src="${url}" style="max-width:100%; margin:auto; display:block;" />`;
-            
         win.document.write(`
             <html>
                 <head><title>Visor de Documento - Forza 22</title></head>
                 <body style="margin:0; background-color:#1e293b; height:100vh; display:flex;">
-                    ${content}
+                    <img src="${url}" style="max-width:100%; margin:auto; display:block;" />
                 </body>
             </html>
         `);
