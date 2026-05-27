@@ -520,40 +520,9 @@ function App({ user }: AppProps = {}) {
 
     const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
-    if (isPDF && file.size > 1024 * 1024) { // PDF > 1MB
-      try {
-        console.log("📄 Iniciando optimización de PDF pesado via renderizado de imagen...");
-        const arrayBuffer = await file.arrayBuffer();
-        
-        const loadingTask = pdfjsLib.getDocument({ 
-          data: new Uint8Array(arrayBuffer)
-        });
-        
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-        
-        const originalViewport = page.getViewport({ scale: 1.0 });
-        const scale = 1200 / originalViewport.width;
-        const viewport = page.getViewport({ scale });
-        
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error("No se pudo obtener el contexto del canvas");
-        
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-        }).promise;
-        
-        const pdfImageAsDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        return await processImageToBlob(pdfImageAsDataUrl);
-      } catch (err: any) {
-        console.error("❌ Fallo crítico en la conversión de PDF a imagen:", err);
-        pdfConversionError = err?.message || String(err);
-      }
+    if (isPDF) {
+      // Devolvemos el PDF original para que se suba completo, en lugar de convertir solo la primera página.
+      return file;
     }
 
     if (file.type.startsWith('image/')) {
