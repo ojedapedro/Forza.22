@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   Search,
   ArrowRight,
+  ExternalLink,
   Calendar,
   Lock,
   Unlock,
@@ -946,7 +947,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         const selectedFiles = Array.from(e.target.files || []);
         if (selectedFiles.length > 0) {
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-            const limitMB = 10;
+            const limitMB = 30;
             const maxSize = limitMB * 1024 * 1024;
             
             const validFiles: File[] = [];
@@ -1884,16 +1885,34 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 
                                                 {(files.length > 0 || attachments.length > 0) && (
                                                     <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-                                                        {attachments.map((url, idx) => (
+                                                        {attachments.map((url, idx) => {
+                                                            const lowerUrl = url.toLowerCase();
+                                                            const urlWithoutQuery = lowerUrl.split('?')[0];
+                                                            const isPdf = urlWithoutQuery.endsWith('.pdf') || lowerUrl.includes('application/pdf') || lowerUrl.includes('type=pdf') || lowerUrl.includes('.pdf?');
+                                                            const isImage = !isPdf && (url.startsWith('data:image/') || url.includes('firebasestorage') || url.includes('googleusercontent'));
+                                                            return (
                                                             <div key={`existing-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-slate-800">
-                                                                {url.startsWith('data:image/') || url.includes('firebasestorage') || url.includes('googleusercontent') ? (
+                                                                {isImage ? (
                                                                     <img src={url} alt="Soporte" className="w-full h-full object-cover" />
+                                                                ) : isPdf ? (
+                                                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800/80 flex flex-col items-center justify-center p-2 text-center text-slate-700 dark:text-slate-300">
+                                                                        <FileText size={24} className="mb-2 text-brand-500" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest break-all line-clamp-2">PDF Document</span>
+                                                                    </div>
                                                                 ) : (
                                                                     <div className="w-full h-full bg-slate-900 flex items-center justify-center">
                                                                         <FileText size={24} className="text-slate-600" />
                                                                     </div>
                                                                 )}
-                                                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(url, '_blank'); }}
+                                                                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                                        title="Ver documento completo"
+                                                                    >
+                                                                        <ExternalLink size={14} />
+                                                                    </button>
                                                                     <button 
                                                                         type="button"
                                                                         onClick={() => removeFile(idx, true)}
@@ -1903,17 +1922,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                        ))}
+                                                        )})}
                                                         {files.map((f, idx) => (
                                                             <div key={`new-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-brand-500/20">
                                                                 {f.type.startsWith('image/') ? (
                                                                     <img src={URL.createObjectURL(f)} alt="Nuevo Soporte" className="w-full h-full object-cover" />
                                                                 ) : (
-                                                                    <div className="w-full h-full bg-brand-500/5 flex items-center justify-center">
-                                                                        <FileText size={24} className="text-brand-400" />
+                                                                    <div className="w-full h-full bg-brand-500/5 flex flex-col items-center justify-center p-2 text-center">
+                                                                        <FileText size={24} className="text-brand-400 mb-2" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest break-all line-clamp-2 text-brand-600 dark:text-brand-400">{f.name}</span>
                                                                     </div>
                                                                 )}
-                                                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(f), '_blank'); }}
+                                                                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                                        title="Ver documento completo"
+                                                                    >
+                                                                        <ExternalLink size={14} />
+                                                                    </button>
                                                                     <button 
                                                                         type="button"
                                                                         onClick={() => removeFile(idx, false)}
@@ -1929,7 +1957,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
 
                                                 <div className="mt-6 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20">
                                                     <p className="text-[9px] text-brand-600 dark:text-brand-400 font-black uppercase tracking-widest text-center leading-tight">
-                                                        Límites: PDF e Imágenes 10MB c/u<br/>
+                                                        Límites: PDF e Imágenes 30MB c/u<br/>
                                                         (Multi-archivos activado)
                                                     </p>
                                                 </div>
