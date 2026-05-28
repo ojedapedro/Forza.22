@@ -12,7 +12,7 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { EvaluationModule } from './components/EvaluationModule';
 import { PredictiveDashboard } from './components/PredictiveDashboard';
-import { Dashboard } from './components/Dashboard';
+// import { Dashboard } from './components/Dashboard';
 import { StoreManagement } from './components/StoreManagement';
 import { InvoicingModule } from './components/InvoicingModule';
 import { ChatCenter } from './components/ChatCenter';
@@ -66,7 +66,7 @@ function App({ user }: AppProps = {}) {
   }, [user]);
 
   // --- APP STATE ---
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState('admin-control');
 
   // --- MOBILE & PWA STATE ---
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -1053,21 +1053,10 @@ function App({ user }: AppProps = {}) {
         );
       case 'dashboard':
         return (
-          <Dashboard 
-            payments={filteredPayments}
-            budgets={filteredBudgets}
-            onNewPayment={() => setCurrentView('payments')}
-            onEditPayment={(payment) => {
-              setEditingPayment(payment);
-              setCurrentView('payments');
-            }}
-            onPaymentSuccess={handlePaymentSuccess}
-            currentUser={currentUser}
-            stores={filteredStores}
-            onLoadMore={loadMorePayments}
-            hasMore={hasMorePayments}
-            isLoadingMore={isLoading}
-          />
+          <div className="p-8 text-center text-slate-500">
+            Error: Módulo deshabilitado. Redirigiendo a Panel de Control...
+            {setTimeout(() => setCurrentView('admin-control'), 500) && ''}
+          </div>
         );
       case 'payments':
         const rejectedPayments = filteredPayments.filter(p => p.status === PaymentStatus.REJECTED);

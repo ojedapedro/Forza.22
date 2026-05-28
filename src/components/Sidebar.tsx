@@ -65,8 +65,8 @@ export const Sidebar: FC<SidebarProps> = ({
   }, [APP_LOGO_URL]);
   
   const navItems = [
-    { id: 'admin-control', label: 'Panel Control', icon: Activity, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
-    { id: 'dashboard', label: 'Monitor Pagos', icon: BarChart3, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.AUDITOR, Role.PRESIDENT] },
+    { id: 'admin-control', label: 'Panel Control', icon: Activity, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.AUDITOR, Role.PRESIDENT] },
+    // { id: 'dashboard', label: 'Monitor Pagos', icon: BarChart3, roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.AUDITOR, Role.PRESIDENT] },
     { id: 'payments', label: 'Categoría Fiscal', icon: FileText, roles: [Role.ADMIN, Role.SUPER_ADMIN] },
     { id: 'notifications', label: 'Notificaciones', icon: BellRing, roles: [Role.ADMIN, Role.AUDITOR, Role.PRESIDENT, Role.SUPER_ADMIN] },
     { id: 'approvals', label: 'Aprobaciones', icon: CheckSquare, roles: [Role.AUDITOR, Role.SUPER_ADMIN, Role.PRESIDENT] },
