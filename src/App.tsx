@@ -990,9 +990,6 @@ function App({ user }: AppProps = {}) {
   const userStoreIds = isGlobalUser ? [] : currentUser?.storeIds || [];
   
   const filteredPayments = payments.filter(p => {
-    // Exclude Payroll from Finance module
-    if (p.category === Category.PAYROLL) return false;
-
     // Filter by store
     if (userStoreIds.length > 0 && !userStoreIds.includes(p.storeId)) return false;
     
@@ -1025,7 +1022,6 @@ function App({ user }: AppProps = {}) {
     return true;
   });
   const filteredBudgets = budgets.filter(b => {
-    if (b.category === Category.PAYROLL) return false;
     if (userStoreIds.length > 0 && !userStoreIds.includes(b.storeId)) return false;
     return true;
   });
