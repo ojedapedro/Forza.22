@@ -105,7 +105,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [isOverBudget, setIsOverBudget] = React.useState(initialData?.isOverBudget || false);
 
   // --- Proposed Changes State ---
-  const [proposedAmount, setProposedAmount] = React.useState<number | undefined>(initialData?.proposedAmount);
+  const [proposedAmount, setProposedAmount] = React.useState<string>(initialData?.proposedAmount !== undefined ? (initialData.proposedAmount * exchangeRate).toFixed(2) : '');
   const [proposedPaymentDate, setProposedPaymentDate] = React.useState<string | undefined>(initialData?.proposedPaymentDate);
   const [proposedDueDate, setProposedDueDate] = React.useState<string | undefined>(initialData?.proposedDueDate);
   const [proposedDaysToExpire, setProposedDaysToExpire] = React.useState<number | undefined>(initialData?.proposedDaysToExpire);
@@ -113,11 +113,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [proposedJustification, setProposedJustification] = React.useState('');
   const [isProposedEdited, setIsProposedEdited] = React.useState(false);
 
-
   // Campos del Soporte
   const [docDate, setDocDate] = React.useState(initialData?.documentDate || '');
   const [docExchangeRate, setDocExchangeRate] = React.useState<number | null>(null);
-  const [docAmount, setDocAmount] = React.useState(initialData?.documentAmount?.toString() || '');
+  const [docAmount, setDocAmount] = React.useState(initialData?.documentAmount ? (initialData.documentAmount * exchangeRate).toFixed(2) : '');
   const [docName, setDocName] = React.useState(initialData?.documentName || '');
   const [dueDateExchangeRate, setDueDateExchangeRate] = React.useState<number | null>(null);
   const [isLoadingRate, setIsLoadingRate] = React.useState(false);
@@ -207,7 +206,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setIsOverBudget(initialData.isOverBudget || false);
       
       // Initialize proposed fields - pre-fill with main values if proposed ones are empty
-      setProposedAmount(initialData.proposedAmount !== undefined ? initialData.proposedAmount : initialData.amount);
+      // Handle proposedAmount in Bs
+      const propAmtRaw = initialData.proposedAmount !== undefined ? initialData.proposedAmount : initialData.amount;
+      const initialPropAmtInBs = propAmtRaw !== undefined && propAmtRaw !== null ? (propAmtRaw * (docExchangeRate || exchangeRate)).toFixed(2) : '';
+      setProposedAmount(initialPropAmtInBs);
       setProposedPaymentDate(initialData.proposedPaymentDate || initialData.paymentDate);
       setProposedDueDate(initialData.proposedDueDate || initialData.dueDate);
       setProposedDaysToExpire(initialData.proposedDaysToExpire !== undefined ? initialData.proposedDaysToExpire : (initialData.daysToExpire || 0));
@@ -215,7 +217,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
       setProposedJustification(initialData.proposedJustification || '');
 
       setDocDate(initialData.documentDate || '');
-      setDocAmount(initialData.documentAmount?.toString() || '');
+      setDocAmount(initialData.documentAmount !== undefined && initialData.documentAmount !== null ? (initialData.documentAmount * (docExchangeRate || exchangeRate)).toFixed(2) : '');
       setDocName(initialData.documentName || '');
       setNotes(initialData.notes || '');
       setDocAmountBsInput(null);
@@ -480,14 +482,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // Sync proposed fields with main fields if not explicitly edited by the user
   React.useEffect(() => {
     if (!isProposedEdited && !initialData) {
-      const amountUsd = parseFloat(amount) / (effectiveExchangeRate || 1);
-      setProposedAmount(isNaN(amountUsd) ? undefined : amountUsd);
+      setProposedAmount(amount || '');
       setProposedPaymentDate(paymentDate);
       setProposedDueDate(dueDate);
       setProposedDaysToExpire(parseInt(daysToExpire) || 0);
       setProposedFrequency(frequency);
     }
-  }, [amount, paymentDate, dueDate, daysToExpire, frequency, isProposedEdited, effectiveExchangeRate, initialData]);
+  }, [amount, paymentDate, dueDate, daysToExpire, frequency, isProposedEdited, initialData]);
 
   const handleProposedPaymentDateChange = React.useCallback((val: string) => {
     setIsProposedEdited(true);
@@ -1075,16 +1076,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
             isOverBudget,
             // Soporte Data
             documentDate: docDate,
-            documentAmount: docAmount ? parseFloat(docAmount) : undefined,
+            documentAmount: docAmount ? parseFloat(docAmount) / (effectiveExchangeRate || 1) : undefined,
             documentName: docName,
             // Proposed Data
-            proposedAmount,
+            proposedAmount: proposedAmount !== '' ? parseFloat(proposedAmount) / (effectiveExchangeRate || 1) : undefined,
             proposedPaymentDate,
             proposedDueDate,
             proposedDaysToExpire,
             proposedFrequency,
             proposedJustification,
-            proposedStatus: (proposedAmount !== undefined) || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined,
+            proposedStatus: (proposedAmount !== '') || proposedPaymentDate || proposedDueDate ? 'PENDING_APPROVAL' : undefined,
             // Historic Rate Reference
             dueDateRate: category === Category.MUNICIPAL_TAX || category === Category.SENIAT_DECLARATIONS || category === Category.INSTITUTIONS ? (dueDateExchangeRate || undefined) : undefined,
             dueDateAmountBs: category === Category.MUNICIPAL_TAX || category === Category.SENIAT_DECLARATIONS || category === Category.INSTITUTIONS ? (parseFloat(amount) || 0) : undefined
@@ -2014,14 +2015,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                     <input
                                                         type="number"
                                                         step="0.01"
-                                                        value={docAmountBsInput !== null ? docAmountBsInput : (docAmount !== '' ? (parseFloat(docAmount) * effectiveExchangeRate).toFixed(2) : '')}
+                                                        value={docAmount}
                                                         onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            setDocAmountBsInput(val);
-                                                            if (val === '') setDocAmount('');
-                                                            else setDocAmount((parseFloat(val) / effectiveExchangeRate).toFixed(2));
+                                                            setDocAmount(e.target.value);
+                                                            setDocAmountBsInput(null);
                                                         }}
-                                                        onBlur={() => setDocAmountBsInput(null)}
                                                         placeholder="0.00"
                                                         className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-sm font-black rounded-xl p-4 pl-12 outline-none focus:ring-4 focus:ring-brand-500/10 transition-all font-mono"
                                                     />
@@ -2044,11 +2042,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                                     type="number"
                                                                     step="0.01"
                                                                     placeholder="0.00"
-                                                                    value={docAmount}
+                                                                    value={docAmountBsInput !== null ? docAmountBsInput : (docAmount !== '' && !isNaN(parseFloat(docAmount)) ? (parseFloat(docAmount) / effectiveExchangeRate).toFixed(2) : '')}
                                                                     onChange={(e) => {
-                                                                        setDocAmount(e.target.value);
-                                                                        setDocAmountBsInput(null);
+                                                                        const val = e.target.value;
+                                                                        setDocAmountBsInput(val);
+                                                                        if (val === '') setDocAmount('');
+                                                                        else setDocAmount((parseFloat(val) * effectiveExchangeRate).toFixed(2));
                                                                     }}
+                                                                    onBlur={() => setDocAmountBsInput(null)}
                                                                     className="w-full bg-transparent border-none text-lg font-black text-brand-600 dark:text-brand-400 tabular-nums pl-4 outline-none focus:ring-0 p-0"
                                                                 />
                                                             </div>
@@ -2091,15 +2092,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                 type="number"
                                                 step="0.01"
                                                 placeholder="0.00"
-                                                value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount !== undefined ? (proposedAmount * effectiveExchangeRate).toFixed(2) : '')}
+                                                value={proposedAmount}
                                                 onChange={(e) => {
                                                     setIsProposedEdited(true);
-                                                    const val = e.target.value;
-                                                    setProposedAmountBsInput(val);
-                                                    if (val === '') setProposedAmount(undefined);
-                                                    else setProposedAmount(parseFloat((parseFloat(val) / effectiveExchangeRate).toFixed(2)));
+                                                    setProposedAmount(e.target.value);
+                                                    setProposedAmountBsInput(null);
                                                 }}
-                                                onBlur={() => setProposedAmountBsInput(null)}
                                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group-focus-within:border-brand-500/50 text-slate-900 dark:text-white text-base font-black rounded-xl focus:ring-4 focus:ring-brand-500/10 block pl-12 p-4 outline-none font-mono transition-all"
                                             />
                                         </div>
@@ -2122,12 +2120,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                             type="number"
                                                             step="0.01"
                                                             placeholder="0.00"
-                                                            value={proposedAmount || ''}
+                                                            value={proposedAmountBsInput !== null ? proposedAmountBsInput : (proposedAmount !== '' && !isNaN(parseFloat(proposedAmount)) ? (parseFloat(proposedAmount) / effectiveExchangeRate).toFixed(2) : '')}
                                                             onChange={(e) => {
                                                                 setIsProposedEdited(true);
-                                                                setProposedAmount(e.target.value ? parseFloat(e.target.value) : undefined);
-                                                                setProposedAmountBsInput(null);
+                                                                const val = e.target.value;
+                                                                setProposedAmountBsInput(val);
+                                                                if (val === '') setProposedAmount('');
+                                                                else setProposedAmount((parseFloat(val) * effectiveExchangeRate).toFixed(2));
                                                             }}
+                                                            onBlur={() => setProposedAmountBsInput(null)}
                                                             className="w-full bg-transparent border-none text-3xl font-black text-brand-600 dark:text-brand-400 tabular-nums pl-6 outline-none focus:ring-0 p-0"
                                                         />
                                                     </div>
