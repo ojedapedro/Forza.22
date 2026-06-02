@@ -59,54 +59,31 @@ export const getFiscalDueDate = (category: Category, itemCode: string, rifEnding
 
 export const getTaxStatus = (deadlineDay: number, category?: Category, itemCode?: string, store?: Store) => {
   const today = new Date();
-  const currentDay = today.getDate();
   
   let targetDueDate: Date | null = null;
   if (category && itemCode && store && store.rifEnding !== undefined) {
     targetDueDate = getFiscalDueDate(category, itemCode, store.rifEnding, today);
   }
 
-  if (targetDueDate) {
-    const diffTime = targetDueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return { 
-        status: 'Vencido', 
-        color: 'bg-red-500', 
-        text: 'text-red-600', 
-        bgSoft: 'bg-red-100',
-        icon: AlertCircle
-      };
-    } else if (diffDays <= 5) {
-      return { 
-        status: 'Próximo', 
-        color: 'bg-amber-500', 
-        text: 'text-amber-600', 
-        bgSoft: 'bg-amber-100',
-        icon: Clock
-      };
-    } else {
-      return { 
-        status: 'En fecha', 
-        color: 'bg-emerald-500', 
-        text: 'text-emerald-600', 
-        bgSoft: 'bg-emerald-100',
-        icon: CheckCircle2
-      };
-    }
+  if (!targetDueDate) {
+    // If no exact date, use the static deadlineDay for the current month
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const safeDeadline = deadlineDay > endOfMonth ? endOfMonth : deadlineDay;
+    targetDueDate = new Date(today.getFullYear(), today.getMonth(), safeDeadline);
   }
 
-  // Old logic for static deadlineDay
-  if (currentDay > deadlineDay) {
+  const diffTime = targetDueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 3) {
     return { 
-      status: 'Vencido', 
+      status: diffDays < 0 ? 'Vencido' : 'Próximo a Vencer', 
       color: 'bg-red-500', 
       text: 'text-red-600', 
       bgSoft: 'bg-red-100',
       icon: AlertCircle
     };
-  } else if (deadlineDay - currentDay <= 5) {
+  } else if (diffDays <= 7) {
     return { 
       status: 'Próximo', 
       color: 'bg-amber-500', 
@@ -209,23 +186,34 @@ export const getCategoryTrafficLight = (
         if (hasPaymentGreen && !isBudgetExceeded) {
           itemStatus = 'green';
         } else if (!isBudgetExceeded) {
-          // Prioridad para pagos no satisfechos: Rojo > Ambar
-          const hasPaymentRed = itemPayments.some(p => 
+          // Prioridad para pagos no satisfechos: Rojo si hay rechazos, si no evaluamos proximidad de fecha
+          const hasPaymentRejected = itemPayments.some(p => 
             p.status === PaymentStatus.REJECTED || 
             p.status === PaymentStatus.OVERDUE
           );
           
-          if (hasPaymentRed) {
+          if (hasPaymentRejected) {
             itemStatus = 'red';
           } else {
-            const hasPaymentAmber = itemPayments.some(p => 
-              p.status === PaymentStatus.PENDING || 
-              p.status === PaymentStatus.UPLOADED
-            );
+            // Toma la fecha de vencimiento del pago para dar alertas
+            // Solo cambia a verde si esta aprobado, si esta pendiente depende de la fecha
+            let unapprovedStatus = itemStatus;
             
-            if (hasPaymentAmber) {
-              itemStatus = 'amber';
-            }
+            itemPayments.forEach(p => {
+              if (p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED) {
+                const pDueDate = new Date(p.dueDate);
+                const diffTime = pDueDate.getTime() - now.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 3) {
+                  unapprovedStatus = 'red';
+                } else if (diffDays <= 7 && unapprovedStatus !== 'red') {
+                  unapprovedStatus = 'amber';
+                }
+              }
+            });
+            
+            itemStatus = unapprovedStatus;
           }
         }
       }

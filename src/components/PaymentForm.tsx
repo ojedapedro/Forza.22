@@ -35,9 +35,11 @@ import {
   Calendar,
   Lock,
   Unlock,
-  X
+  X,
+  ChevronLeft
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency, AuditLog, Role, BudgetEntry } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate, getFrequencyDays, calculateNextDueDate, formatDateTime } from '../utils';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -83,6 +85,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   // States for Tax Logic (Municipal & National)
   const [taxGroup, setTaxGroup] = React.useState('');
   const [taxItem, setTaxItem] = React.useState('');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = React.useState(false);
 
   const [amount, setAmount] = React.useState(initialData?.amount?.toString() || '');
   const [usdAmountInput, setUsdAmountInput] = React.useState<string | null>(null);
@@ -1375,7 +1378,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                     key={cat.id}
                                     type="button"
                                     disabled={isSubmitting}
-                                    onClick={() => setCategory(cat.id)}
+                                    onClick={() => {
+                                        setCategory(cat.id);
+                                        if (getTaxConfig(cat.id)) {
+                                            if (category !== cat.id) {
+                                                setTaxGroup('');
+                                                setTaxItem('');
+                                            }
+                                            setIsCategoryModalOpen(true);
+                                        }
+                                    }}
                                     aria-pressed={isSelected}
                                     aria-label={`${cat.label} - Estado: ${trafficLight === 'red' ? 'Vencido' : trafficLight === 'amber' ? 'Pendiente' : 'Al día'}`}
                                     className={`relative flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all duration-300 group active:scale-95 ${trafficClasses} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1404,8 +1416,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
         <div className="space-y-10">
             <div className="space-y-10">
                 {/* Dynamic Tax Section with Traffic Light */}
-                {!!getTaxConfig(category) && (
-                    <section className={`rounded-3xl border-2 transition-all duration-500 animate-in slide-in-from-top-4 overflow-hidden shadow-2xl ${globalStatus.bg} ${globalStatus.border}`}>
+                <AnimatePresence>
+                {isCategoryModalOpen && !!getTaxConfig(category) && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm"
+                    >
+                    <motion.div 
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                        className="bg-white dark:bg-slate-900 w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col relative"
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setIsCategoryModalOpen(false)}
+                            className="absolute top-6 right-6 p-2 bg-slate-100/50 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-700 rounded-full transition-colors z-10"
+                        >
+                            <X size={24} className="text-slate-500 dark:text-slate-400" />
+                        </button>
+                    <section className={`w-full overflow-y-auto custom-scrollbar transition-all duration-500 ${globalStatus.bg} ${globalStatus.border}`}>
                         
                         {/* Header Dinámico */}
                         <div className={`p-6 border-b-2 ${globalStatus.border} flex items-center justify-between bg-white/40 dark:bg-black/10 backdrop-blur-md`}>
@@ -1423,44 +1455,36 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
+                        <div className="flex flex-col min-h-[500px]">
                             {/* Selector de Rubro */}
-                            <div className="p-8 bg-white/30 dark:bg-slate-900/30">
+                            <AnimatePresence mode="wait">
+                            {!taxGroup && (
+                            <motion.div 
+                                key="step1"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="p-8 flex-1 bg-white/30 dark:bg-slate-900/30"
+                            >
                                 <div className="flex items-center justify-between mb-6">
                                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Seleccione Rubro a Pagar</label>
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{taxStatusList.length} Rubros Disponibles</span>
                                 </div>
                                 <div 
-                                    role="listbox"
-                                    aria-label="Seleccione Rubro a Pagar"
-                                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2"
+                                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto custom-scrollbar"
                                 >
                                     {taxStatusList.map((item) => (
                                         <button
                                             key={item.key}
                                             type="button"
-                                            role="option"
-                                            aria-selected={taxGroup === item.key}
-                                            onClick={() => {
-                                                setTaxGroup(item.key);
-                                                setTaxItem('');
-                                                const element = document.getElementById(`group-${item.key}`);
-                                                if (element) {
-                                                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                                }
-                                            }}
-                                            className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left group active:scale-[0.98] ${
-                                                taxGroup === item.key 
-                                                ? 'bg-brand-500/10 border-brand-500 ring-4 ring-brand-500/10 shadow-lg' 
-                                                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-brand-300 dark:hover:border-slate-600'
-                                            }`}
+                                            onClick={() => setTaxGroup(item.key)}
+                                            className="w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-brand-300 dark:hover:border-slate-600 hover:-translate-y-1 shadow-sm hover:shadow-md"
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div 
                                                     className={`w-3.5 h-3.5 rounded-full shadow-md ${item.color} ${item.status === 'Vencido' ? 'animate-pulse' : ''}`}
-                                                    aria-label={`Estado: ${item.status}`}
                                                 ></div>
-                                                <span className={`text-xs font-black uppercase tracking-tight ${taxGroup === item.key ? 'text-brand-600 dark:text-brand-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                <span className="text-xs font-black uppercase tracking-tight text-slate-600 dark:text-slate-300">
                                                     {item.label.split(' ').slice(1, 5).join(' ')}
                                                 </span>
                                             </div>
@@ -1471,23 +1495,40 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                            </motion.div>
+                            )}
 
-                            {/* Selector de Concepto Específico - Ahora muestra TODOS los conceptos agrupados */}
-                            <div className="p-8 flex flex-col bg-white dark:bg-slate-900">
+                            {/* Selector de Concepto Específico */}
+                            {taxGroup && (
+                            <motion.div 
+                                key="step2"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className="p-8 flex-1 flex flex-col bg-white dark:bg-slate-900"
+                            >
                                 <div className="flex items-center justify-between mb-6">
-                                    <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-1">Conceptos de Pago</label>
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTaxGroup('')}
+                                            className="p-2 bg-brand-500/10 text-brand-500 hover:bg-brand-500/20 rounded-full transition-colors"
+                                        >
+                                            <ChevronLeft size={20} />
+                                        </button>
+                                        <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase">Seleccione Concepto de Pago</label>
+                                    </div>
                                     <span className="text-[10px] font-black text-brand-500 uppercase tracking-widest">
-                                        {allCategoryItemsStatus.reduce((acc, curr) => acc + curr.items.length, 0)} Conceptos totales
+                                        {allCategoryItemsStatus.find(g => g.groupKey === taxGroup)?.items.length || 0} Conceptos
                                     </span>
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[600px] space-y-8">
-                                    {allCategoryItemsStatus.map((group) => (
-                                        <div key={group.groupKey} id={`group-${group.groupKey}`} className={`space-y-4 transition-all duration-500 ${taxGroup && taxGroup !== group.groupKey ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}>
+                                    {allCategoryItemsStatus.filter(g => g.groupKey === taxGroup).map((group) => (
+                                        <div key={group.groupKey} id={`group-${group.groupKey}`} className="space-y-4">
                                             <div className="flex items-center gap-3 px-2">
                                                 <div className="w-1 h-4 bg-brand-500 rounded-full"></div>
-                                                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400">{group.label}</h4>
+                                                <h4 className="text-[11px] font-black uppercase tracking-widest text-brand-500">{group.label}</h4>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 {group.items.map((item) => (
@@ -1500,6 +1541,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                                         onClick={() => {
                                                             setTaxGroup(group.groupKey);
                                                             setTaxItem(item.code);
+                                                            setIsCategoryModalOpen(false);
+                                                            setTimeout(() => {
+                                                                const element = document.getElementById('finanzas-section');
+                                                                if (element) {
+                                                                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                                }
+                                                            }, 100);
                                                         }}
                                                         className={`w-full flex flex-col p-4 rounded-2xl border-2 transition-all text-left group relative active:scale-[0.98] ${
                                                             taxItem === item.code 
@@ -1608,13 +1656,41 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
+                            )}
+                            </AnimatePresence>
                         </div>
                     </section>
+                    </motion.div>
+                    </motion.div>
+                )}
+                </AnimatePresence>
+
+                {!!getTaxConfig(category) && taxItem && !isCategoryModalOpen && (
+                     <div className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-4">
+                         <div>
+                             <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Obligación Seleccionada</p>
+                             <div className="flex flex-col gap-1">
+                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Rubro: {taxStatusList.find(g => g.key === taxGroup)?.label}
+                                 </p>
+                                 <p className="text-base font-black text-brand-500 uppercase tracking-tight">
+                                    {allCategoryItemsStatus.find(g => g.groupKey === taxGroup)?.items.find(i => i.code === taxItem)?.name} ({taxItem})
+                                 </p>
+                             </div>
+                         </div>
+                         <button
+                            type="button"
+                            onClick={() => setIsCategoryModalOpen(true)}
+                            className="px-6 py-3 text-[11px] font-black uppercase tracking-widest bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 rounded-xl hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors border border-brand-200 dark:border-brand-500/20 shadow-sm"
+                         >
+                            Cambiar Selección
+                         </button>
+                     </div>
                 )}
 
                 {/* Section 2: Detalles Financieros */}
-                <section className={`glass-card p-10 transition-all duration-500 shadow-xl ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
+                <section id="finanzas-section" className={`glass-card p-10 transition-all duration-500 shadow-xl ${initialData?.status === PaymentStatus.REJECTED ? 'border-red-500/30' : ''}`}>
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="label-caps flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>

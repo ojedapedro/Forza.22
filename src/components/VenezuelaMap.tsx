@@ -15,10 +15,27 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
   const [activeStore, setActiveStore] = React.useState<Store | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  // Use a placeholder key if not provided in env
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+  const isApiKeyMissing = !apiKey || apiKey.includes('YOUR_API_KEY') || apiKey === 'your-api-key';
 
-  const MapContent = (isModal: boolean = false) => (
+  const MapContent = (isModal: boolean = false) => {
+    if (isApiKeyMissing) {
+      return (
+        <div className={`relative flex items-center justify-center w-full ${isModal ? 'h-full' : 'h-[300px] sm:h-[450px]'} rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/50`}>
+          <div className="text-center p-6">
+            <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+               <Maximize2 size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Mapa no disponible</h3>
+            <p className="text-sm text-slate-400 max-w-sm mx-auto">
+              Configure VITE_GOOGLE_MAPS_API_KEY en las variables de entorno para habilitar el mapa interactivo.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
     <div className={`relative w-full ${isModal ? 'h-full' : 'h-[300px] sm:h-[450px]'} rounded-2xl overflow-hidden border border-slate-700/50`}>
       <APIProvider apiKey={apiKey}>
         <Map
@@ -114,7 +131,8 @@ export const VenezuelaMap: React.FC<VenezuelaMapProps> = ({ stores, selectedStor
           )}
       </AnimatePresence>
     </div>
-  );
+    );
+  };
 
   return (
     <>
