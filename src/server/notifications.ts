@@ -106,7 +106,81 @@ export async function checkAndSendNotifications() {
       return { success: true, message: 'No hay pagos urgentes.' };
     }
 
-    // 3. Construir Mensaje
+    // 2.5. Fetch Admin Emails
+    const adminEmails: string[] = [];
+    try {
+      const usersRef = collection(db, 'users');
+      const usersSnap = await getDocs(usersRef);
+      usersSnap.forEach(u => {
+        const userData = u.data();
+        if ((userData.role === 'Administrador' || userData.role === 'Presidencia' || userData.role === 'Super Usuario') && userData.email) {
+          adminEmails.push(userData.email);
+        }
+      });
+    } catch (usersErr) {
+      console.warn("⚠️ No se pudo obtener la lista de usuarios (falta de permisos en entorno servidor). Se usarán correos por defecto.");
+    }
+    
+    // Add default admin from environment
+    if (process.env.ADMIN_EMAILS) {
+        const envEmails = process.env.ADMIN_EMAILS.split(',').map(e => e.trim()).filter(e => e);
+        adminEmails.push(...envEmails);
+    }
+    if (process.env.RESEND_TEST_TO_EMAIL && adminEmails.length === 0) {
+        adminEmails.push(process.env.RESEND_TEST_TO_EMAIL);
+    }
+
+    // 2.6. Send Email Notifications
+    if (settings && settings.emailEnabled !== false && adminEmails.length > 0) {
+      if (process.env.RESEND_API_KEY) {
+        try {
+          // Dynamic import to avoid top-level require issues
+          const { Resend } = await import('resend');
+          const resendClient = new Resend(process.env.RESEND_API_KEY);
+          const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+          let htmlContent = `
+            <div style="font-family: sans-serif; padding: 20px; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #0ea5e9;">Forza 22 - Reporte de Obligaciones</h2>
+              <p>Fecha: ${today.toLocaleDateString()}</p>
+          `;
+          if (overdueArr.length > 0) {
+            htmlContent += `<h3 style="color: #ef4444;">🔴 Vencidos</h3><ul>${overdueArr.map(p => `<li><strong>${p.storeName}</strong>: $${p.amount.toLocaleString()} - ${p.specificType} (Atrasado ${Math.abs(p.diffDays)} días)</li>`).join('')}</ul>`;
+          }
+          if (criticalArr.length > 0) {
+             htmlContent += `<h3 style="color: #f59e0b;">🚨 Críticos</h3><ul>${criticalArr.map(p => `<li><strong>${p.storeName}</strong>: $${p.amount.toLocaleString()} - ${p.specificType} (Vence en ${p.diffDays} días)</li>`).join('')}</ul>`;
+          }
+          if (warningArr.length > 0) {
+             htmlContent += `<h3 style="color: #3b82f6;">🟡 Próximos</h3><ul>${warningArr.map(p => `<li><strong>${p.storeName}</strong>: $${p.amount.toLocaleString()} - ${p.specificType} (Vence en ${p.diffDays} días)</li>`).join('')}</ul>`;
+          }
+          
+          htmlContent += `
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
+                Este es un correo automático. Por favor revise el panel de control para gestionar estos pagos.
+              </div>
+            </div>`;
+
+          const targetEmails = process.env.RESEND_TEST_TO_EMAIL 
+            ? [process.env.RESEND_TEST_TO_EMAIL] 
+            : [...new Set(adminEmails)];
+
+          if (targetEmails.length > 0) {
+            await resendClient.emails.send({
+              from: `Forza <${fromEmail}>`,
+              to: targetEmails,
+              subject: `Resumen de Obligaciones - ${today.toLocaleDateString()}`,
+              html: htmlContent
+            });
+            console.log(`📧 Correo automático enviado exitosamente a ${targetEmails.length} administradores.`);
+          }
+        } catch(e: any) {
+          console.error("❌ Error enviando email automático con Resend:", e);
+        }
+      } else {
+        console.warn("⚠️ RESEND_API_KEY no configurada. No se enviaron emails automáticos.");
+      }
+    }
+
+    // 3. Construir Mensaje de WhatsApp
     let message = `📊 *REPORTE FORZA 22*\n${today.toLocaleDateString()}\n`;
     message += `--------------------------------\n\n`;
 

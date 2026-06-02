@@ -370,13 +370,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         });
       }
       
-      if (config.whatsappEnabled) {
+      if (config.whatsappEnabled || config.emailEnabled) {
         const res = await api.triggerNotificationCheck();
         if (res.error || res.status === 'error' || res.success === false) {
           const detail = res.message || res.error || 'Error desconocido';
-          alert(`❌ Error en prueba WhatsApp: ${detail}\n\nPor favor, verifica que las variables TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN estén configuradas en el menú de Ajustes (Settings) de la aplicación.`);
+          alert(`❌ Error en prueba: ${detail}\n\nPor favor, verifica la configuración de claves (Twilio/Resend) en los Ajustes del sistema.`);
         } else {
-          alert(`✅ Resultado prueba WhatsApp: ${res.message || 'Chequeo completado con éxito'}`);
+          alert(`✅ Prueba completada con éxito: ${res.message || 'Chequeo y envío ejecutados'}`);
         }
       } else if (config.pushEnabled) {
         alert('Notificación Push de prueba enviada.');

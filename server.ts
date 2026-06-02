@@ -1,5 +1,14 @@
 import express from 'express';
 
+// Suppress Firebase Grpc idle stream warnings on backend
+const originalConsoleError = console.error;
+console.error = function(...args) {
+  if (typeof args[0] === 'string' && args[0].includes("GrpcConnection RPC 'Listen' stream") && args[0].includes("CANCELLED")) {
+    return;
+  }
+  originalConsoleError.apply(console, args);
+};
+
 console.log('🚀 [Server] server.ts cargado');
 console.log('🚀 [Server] NODE_ENV:', process.env.NODE_ENV);
 import path from 'path';
