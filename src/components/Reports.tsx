@@ -22,10 +22,11 @@ import {
 } from 'recharts';
 import { Payment, PaymentStatus, User, Role, AuditLog, Category, BudgetEntry, Store } from '../types';
 import { formatDate, formatDateTime } from '../utils';
-import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown, Users, Briefcase, Calculator, ShieldCheck } from 'lucide-react';
+import { Download, Calendar, ArrowUpRight, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Filter, Wallet, AlertCircle, TrendingDown, AlertTriangle, FileText, FileSpreadsheet, ChevronDown, Users, Briefcase, Calculator, ShieldCheck, Lightbulb } from 'lucide-react';
 import { APP_LOGO_URL } from '../constants';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
+import { PredictiveAnalysis } from './PredictiveAnalysis';
 
 interface ReportsProps {
   payments: Payment[];
@@ -159,7 +160,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
 
 export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], currentUser, stores = [] }) => {
   console.log("Reports received:", { paymentsCount: payments.length, budgetsCount: budgets.length });
-  const [activeReport, setActiveReport] = React.useState<'financial' | 'auditor'>('financial');
+  const [activeReport, setActiveReport] = React.useState<'financial' | 'auditor' | 'predictive'>('financial');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showExportMenu, setShowExportMenu] = React.useState(false);
 
@@ -905,6 +906,17 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
           <ShieldCheck size={18} />
           <span>Actividad de Auditores</span>
         </button>
+        <button
+          onClick={() => setActiveReport('predictive')}
+          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
+            activeReport === 'predictive'
+              ? 'bg-amber-500 text-slate-900 dark:text-white shadow-lg shadow-amber-500/30'
+              : 'bg-white dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800'
+          }`}
+        >
+          <Lightbulb size={18} />
+          <span>Análisis Predictivo</span>
+        </button>
       </div>
 
       {activeReport === 'financial' ? (
@@ -1432,7 +1444,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
           </motion.div>
       </div>
         </>
-      ) : (
+      ) : activeReport === 'auditor' ? (
         <div className="space-y-8">
           {/* Auditor Activity Table */}
           <motion.div 
@@ -1556,6 +1568,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
             </div>
           </motion.div>
         </div>
+      ) : (
+        <PredictiveAnalysis payments={payments} />
       )}
     </div>
   );
