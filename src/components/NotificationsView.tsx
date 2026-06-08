@@ -539,9 +539,25 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
                       </div>
 
                       <div className={`space-y-4 transition-all ${config.emailEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic mb-4">
                               * El servicio utiliza <strong>Resend</strong> configurado en el servidor. Asegúrese de que las variables de entorno <code>RESEND_API_KEY</code> y <code>RESEND_FROM_EMAIL</code> estén configuradas en el panel de control.
                           </p>
+                          
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Hora de Envío Programado</label>
+                              <div className="relative">
+                                  <input 
+                                    type="time" 
+                                    value={config.emailScheduleTime || '08:00'}
+                                    onChange={(e) => setConfig({...config, emailScheduleTime: e.target.value})}
+                                    className="w-48 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white font-mono"
+                                  />
+                                  <Clock size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                              </div>
+                              <p className="text-[10px] text-slate-500 mt-1.5 ml-1">
+                                  Hora en la que el sistema enviará los recordatorios por correo diariamente (formato 24h). Cambie el valor y presione "Guardar" para reprogramar el cron en el servidor.
+                              </p>
+                          </div>
                       </div>
                   </div>
 

@@ -217,24 +217,37 @@ export const Approvals: React.FC<ApprovalsProps> = ({
         let changed = false;
 
         if (item === 'proposedDatesApproved') {
-            if (newValue && selectedPayment.proposedDueDate) {
-                updatedPayment.previousDueDate = selectedPayment.dueDate;
-                updatedPayment.dueDate = selectedPayment.proposedDueDate;
+            const isTaxCategory = !!getTaxConfig(selectedPayment.category as any);
+            if (newValue) {
+                if (selectedPayment.proposedDueDate && !isTaxCategory) {
+                    updatedPayment.previousDueDate = selectedPayment.dueDate;
+                    updatedPayment.dueDate = selectedPayment.proposedDueDate;
+                }
+                if (selectedPayment.proposedPaymentDate) {
+                    updatedPayment.previousPaymentDate = selectedPayment.paymentDate;
+                    updatedPayment.paymentDate = selectedPayment.proposedPaymentDate;
+                }
                 
-                // Recalcular daysToExpire
-                if (updatedPayment.paymentDate) {
+                // Recalcular daysToExpire si cambiaron las fechas
+                if (updatedPayment.paymentDate && updatedPayment.dueDate) {
                     const d1 = new Date(updatedPayment.paymentDate);
                     const d2 = new Date(updatedPayment.dueDate);
                     const diffTime = d2.getTime() - d1.getTime();
                     updatedPayment.daysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 }
                 changed = true;
-            } else if (!newValue && selectedPayment.previousDueDate) {
-                updatedPayment.dueDate = selectedPayment.previousDueDate;
-                updatedPayment.previousDueDate = undefined;
+            } else {
+                if (selectedPayment.previousDueDate && !isTaxCategory) {
+                    updatedPayment.dueDate = selectedPayment.previousDueDate;
+                    updatedPayment.previousDueDate = undefined;
+                }
+                if (selectedPayment.previousPaymentDate) {
+                    updatedPayment.paymentDate = selectedPayment.previousPaymentDate;
+                    updatedPayment.previousPaymentDate = undefined;
+                }
 
                 // Recalcular daysToExpire
-                if (updatedPayment.paymentDate) {
+                if (updatedPayment.paymentDate && updatedPayment.dueDate) {
                     const d1 = new Date(updatedPayment.paymentDate);
                     const d2 = new Date(updatedPayment.dueDate);
                     const diffTime = d2.getTime() - d1.getTime();

@@ -47,6 +47,12 @@ function getTwilioClient(): twilio.Twilio | null {
   }
 }
 
+export async function fetchServerSettings() {
+    if (!db) return null;
+    const settingsDoc = await getDoc(doc(db, 'settings', 'global'));
+    return settingsDoc.exists() ? settingsDoc.data() : null;
+}
+
 export async function checkAndSendNotifications() {
   const client = getTwilioClient();
   

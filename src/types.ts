@@ -114,6 +114,7 @@ export interface Payment {
   // Campos de Propuesta Financiera
   proposedAmount?: number;
   proposedPaymentDate?: string;
+  previousPaymentDate?: string; // para revertir la fecha de alerta propuesta si se desmarca
   proposedDueDate?: string;
   proposedDaysToExpire?: number;
   proposedFrequency?: PaymentFrequency;
@@ -178,6 +179,7 @@ export interface SystemSettings {
   notifyPending?: boolean;
   notifyOverdue?: boolean;
   refreshInterval?: number;
+  emailScheduleTime?: string;
 }
 
 export interface PayrollLiability {

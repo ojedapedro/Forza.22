@@ -1871,9 +1871,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                         type="number"
                                         placeholder="0"
                                         value={daysToExpire}
-                                        readOnly={isFinancialLocked || isSubmitting}
+                                        readOnly={isFinancialLocked || (!!getTaxConfig(category) && !isManualOverride) || isSubmitting}
                                         onChange={(e) => handleDaysToExpireChange(e.target.value)}
-                                        className={`w-full bg-[#0a0c10] border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${isFinancialLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        className={`w-full bg-[#0a0c10] border border-slate-800 group-focus-within:border-brand-500/50 text-slate-200 text-base font-bold rounded-xl focus:ring-4 focus:ring-brand-500/10 block p-4 pl-12 outline-none transition-all ${(isFinancialLocked || (!!getTaxConfig(category) && !isManualOverride)) ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     />
                                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-brand-400 transition-colors" size={20} aria-hidden="true" />
                                 </div>

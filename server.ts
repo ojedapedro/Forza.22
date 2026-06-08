@@ -1,10 +1,12 @@
+import cron from 'node-cron';
 import express from 'express';
 
 // Suppress Firebase Grpc idle stream warnings on backend
 const originalConsoleError = console.error;
 console.error = function(...args) {
-  if (typeof args[0] === 'string' && args[0].includes("GrpcConnection RPC 'Listen' stream") && args[0].includes("CANCELLED")) {
-    return;
+  const logStr = args.map(String).join(' ');
+  if (logStr.includes("GrpcConnection") && logStr.includes("CANCELLED")) {
+    return; // Suppress Firebase idle stream warning
   }
   originalConsoleError.apply(console, args);
 };
@@ -18,7 +20,7 @@ import session from 'express-session';
 import fs from 'fs';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { checkAndSendNotifications } from './src/server/notifications';
+import { checkAndSendNotifications, fetchServerSettings } from './src/server/notifications.ts';
 
 // Import API handlers
 import pingHandler from './src/api/ping.ts';
@@ -173,18 +175,30 @@ async function startServer() {
     console.log(`🌍 [Server] URL: http://0.0.0.0:${PORT}`);
     console.log(`📝 [Server] process.env.PORT detectado: ${process.env.PORT || 'no definido'}`);
     
-    // Configurar chequeo diario de notificaciones (cada 24 horas)
-    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-    setInterval(async () => {
-      console.log('🕒 [Server] Ejecutando chequeo diario de notificaciones...');
-      try {
-        await checkAndSendNotifications();
-      } catch (err) {
-        console.error('❌ [Server] Error en el chequeo diario:', err);
-      }
-    }, TWENTY_FOUR_HOURS);
-    
-    // Ejecutar un chequeo inicial después de 30 segundos del arranque
+    // Configurar cron-job para procesar recordatorios programados
+    cron.schedule('* * * * *', async () => {
+        try {
+            const settings = await fetchServerSettings();
+            
+            // Default time si no hay configuración
+            const scheduleTime = settings?.emailScheduleTime || '08:00';
+            
+            const now = new Date();
+            // Asegurar zona horaria estándar o local. Trabajamos con hora local del contenedor:
+            const currentHour = String(now.getHours()).padStart(2, '0');
+            const currentMinute = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${currentHour}:${currentMinute}`;
+            
+            if (currentTime === scheduleTime) {
+                console.log(`🕒 [Server] Coincidencia de horario (${currentTime}). Ejecutando recordatorios...`);
+                await checkAndSendNotifications();
+            }
+        } catch (err) {
+            console.error('❌ [Server] Error en el cron programado:', err);
+        }
+    });
+
+    // Ejecutar un chequeo inicial después de 30 segundos del arranque para debug
     setTimeout(async () => {
       console.log('🕒 [Server] Ejecutando chequeo inicial de notificaciones...');
       try {
