@@ -124,19 +124,28 @@ async function startServer() {
   // Vite middleware
   // En producción (Cloud Run, Vercel, etc.) NODE_ENV debería estar seteado.
   // Si no está seteado, pero existe la carpeta dist, asumimos producción.
-  const isProd = process.env.NODE_ENV === 'production' || (fs.existsSync(path.join(process.cwd(), 'dist')) && process.env.NODE_ENV !== 'development');
+  let isProd = process.env.NODE_ENV === 'production' || (fs.existsSync(path.join(process.cwd(), 'dist')) && process.env.NODE_ENV !== 'development');
   
-  console.log(`🚀 [Server] Modo detectado: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'} (NODE_ENV: ${process.env.NODE_ENV || 'no definido'})`);
+  console.log(`🚀 [Server] Modo detectado al inicio: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'} (NODE_ENV: ${process.env.NODE_ENV || 'no definido'})`);
 
+  let vite: any = null;
   if (!isProd) {
-    console.log('📦 [Server] Cargando Vite middleware...');
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
+    try {
+      console.log('📦 [Server] Intentando cargar Vite middleware...');
+      const { createServer: createViteServer } = await import('vite');
+      vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+      console.log('✅ [Server] Vite middleware configurado exitosamente.');
+    } catch (err: any) {
+      console.warn('⚠️ [Server] No se pudo cargar Vite (probablemente estemos en prod sin devDependencies). Activando modo producción. Error:', err.message);
+      isProd = true;
+    }
+  }
+
+  if (isProd) {
     const distPath = path.join(process.cwd(), 'dist');
     // Servir assets estáticos con cache largo si tienen hash, pero NO el index.html ni el sw.js
     app.use(express.static(distPath, {
