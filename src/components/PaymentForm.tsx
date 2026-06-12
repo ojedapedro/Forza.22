@@ -270,6 +270,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
   const [loadingText, setLoadingText] = React.useState('');
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [isFileScanning, setIsFileScanning] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
 
   const resetForm = () => {
@@ -1942,10 +1943,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                             {/* File Upload */}
                             <div className="space-y-6">
                                 <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Comprobante / Recibo Principal</label>
-                                <label className={`relative block rounded-[2.5rem] border-2 border-dashed transition-all duration-500 overflow-hidden group cursor-pointer ${
-                                    errors.file ? 'border-red-500/50 bg-red-500/5' : 'border-slate-800 hover:border-brand-500/50 bg-[#0a0c10]'
+                                <label 
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                                    onDrop={(e) => { 
+                                        e.preventDefault(); 
+                                        e.stopPropagation(); 
+                                        setIsDragging(false); 
+                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                            const fakeEvent = { target: { files: e.dataTransfer.files, value: '' } } as any;
+                                            handleFileChange(fakeEvent);
+                                        }
+                                    }}
+                                    className={`relative block rounded-[2.5rem] border-2 border-dashed transition-all duration-500 overflow-hidden group cursor-pointer ${
+                                    errors.file ? 'border-red-500/50 bg-red-500/5' : isDragging ? 'border-brand-500 bg-brand-500/10 scale-[1.02]' : 'border-slate-800 hover:border-brand-500/50 bg-[#0a0c10]'
                                 }`}>
-                                    <div className="p-10 flex flex-col items-center justify-center min-h-[320px] relative z-10 text-center">
+                                    <div className="p-8 flex flex-col items-center justify-center min-h-[320px] relative z-10 text-center w-full">
                                         {isFileScanning ? (
                                             <div className="flex flex-col items-center animate-in zoom-in duration-300">
                                                 <div className="w-16 h-16 border-4 border-brand-500/10 border-t-brand-500 rounded-full animate-spin mb-6"></div>
@@ -1956,94 +1969,116 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit, onCancel, in
                                             </div>
                                         ) : (
                                             <>
-                                                <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
-                                                    <Upload size={32} />
-                                                </div>
-                                                <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Cargar Comprobantes</p>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Seleccione uno o más (PDF, JPG, PNG)</p>
-                                                
-                                                {(files.length > 0 || attachments.length > 0) && (
-                                                    <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-                                                        {attachments.map((url, idx) => {
-                                                            const lowerUrl = url.toLowerCase();
-                                                            const urlWithoutQuery = lowerUrl.split('?')[0];
-                                                            const isPdf = urlWithoutQuery.endsWith('.pdf') || lowerUrl.includes('application/pdf') || lowerUrl.includes('type=pdf') || lowerUrl.includes('.pdf?');
-                                                            const isImage = !isPdf && (url.startsWith('data:image/') || url.includes('firebasestorage') || url.includes('googleusercontent'));
-                                                            return (
-                                                            <div key={`existing-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-slate-800">
-                                                                {isImage ? (
-                                                                    <img src={url} alt="Soporte" className="w-full h-full object-cover" />
-                                                                ) : isPdf ? (
-                                                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800/80 flex flex-col items-center justify-center p-2 text-center text-slate-700 dark:text-slate-300">
-                                                                        <FileText size={24} className="mb-2 text-brand-500" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-widest break-all line-clamp-2">PDF Document</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                                                                        <FileText size={24} className="text-slate-600" />
-                                                                    </div>
-                                                                )}
-                                                                <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(url, '_blank'); }}
-                                                                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                                                                        title="Ver documento completo"
-                                                                    >
-                                                                        <ExternalLink size={14} />
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => removeFile(idx, true)}
-                                                                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                                                    >
-                                                                        <X size={14} />
-                                                                    </button>
-                                                                </div>
+                                                {(files.length === 0 && attachments.length === 0) ? (
+                                                    <div className="flex flex-col items-center pointer-events-none">
+                                                        <div className={`p-5 rounded-2xl mb-4 transition-all duration-300 group-hover:scale-110 ${errors.file ? 'bg-red-500/20 text-red-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                                                            <Upload size={32} />
+                                                        </div>
+                                                        <p className="mb-1 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Cargar Comprobantes</p>
+                                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mb-4">Seleccione uno o más (PDF, JPG, PNG)</p>
+                                                        <div className="px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700">
+                                                            <p className="text-[10px] text-slate-400 font-bold tracking-tight">O arrastre los archivos aquí</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full">
+                                                        <div className="flex items-center justify-between pl-2 pr-2 mb-4 w-full">
+                                                            <div className="flex flex-col items-start px-2">
+                                                                <p className="mb-0.5 text-sm text-slate-900 dark:text-white font-black uppercase tracking-tight">Soportes ({files.length + attachments.length})</p>
+                                                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Arrastre más archivos para agregar</p>
                                                             </div>
-                                                        )})}
-                                                        {files.map((f, idx) => (
-                                                            <div key={`new-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-brand-500/20">
-                                                                {f.type.startsWith('image/') ? (
-                                                                    <img src={URL.createObjectURL(f)} alt="Nuevo Soporte" className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    <div className="w-full h-full bg-brand-500/5 flex flex-col items-center justify-center p-2 text-center">
-                                                                        <FileText size={24} className="text-brand-400 mb-2" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-widest break-all line-clamp-2 text-brand-600 dark:text-brand-400">{f.name}</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
+                                                            {attachments.map((url, idx) => {
+                                                                const lowerUrl = url.toLowerCase();
+                                                                const urlWithoutQuery = lowerUrl.split('?')[0];
+                                                                const isPdf = urlWithoutQuery.endsWith('.pdf') || lowerUrl.includes('application/pdf') || lowerUrl.includes('type=pdf') || lowerUrl.includes('.pdf?');
+                                                                const isImage = !isPdf && (url.startsWith('data:image/') || url.includes('firebasestorage') || url.includes('googleusercontent'));
+                                                                return (
+                                                                <div key={`existing-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-slate-800">
+                                                                    {isImage ? (
+                                                                        <img src={url} alt="Soporte" className="w-full h-full object-cover" />
+                                                                    ) : isPdf ? (
+                                                                        <div className="w-full h-full bg-slate-100 dark:bg-slate-800/80 flex flex-col items-center justify-center p-2 text-center text-slate-700 dark:text-slate-300">
+                                                                            <FileText size={24} className="mb-2 text-brand-500" />
+                                                                            <span className="text-[9px] font-black uppercase tracking-widest break-all line-clamp-2">PDF Document</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                                                                            <FileText size={24} className="text-slate-600" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(url, '_blank'); }}
+                                                                            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                                            title="Ver documento completo"
+                                                                        >
+                                                                            <ExternalLink size={14} />
+                                                                        </button>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(idx, true); }}
+                                                                            className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                                                        >
+                                                                            <X size={14} />
+                                                                        </button>
                                                                     </div>
-                                                                )}
-                                                                <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(f), '_blank'); }}
-                                                                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                                                                        title="Ver documento completo"
-                                                                    >
-                                                                        <ExternalLink size={14} />
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => removeFile(idx, false)}
-                                                                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                                                    >
-                                                                        <X size={14} />
-                                                                    </button>
                                                                 </div>
+                                                            )})}
+                                                            {files.map((f, idx) => (
+                                                                <div key={`new-${idx}`} className="relative aspect-square rounded-xl overflow-hidden group/item border border-brand-500/20">
+                                                                    {f.type.startsWith('image/') ? (
+                                                                        <img src={URL.createObjectURL(f)} alt="Nuevo Soporte" className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-brand-500/5 flex flex-col items-center justify-center p-2 text-center">
+                                                                            <FileText size={24} className="text-brand-400 mb-2" />
+                                                                            <span className="text-[9px] font-black uppercase tracking-widest break-all line-clamp-2 text-brand-600 dark:text-brand-400">{f.name}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(f), '_blank'); }}
+                                                                            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                                            title="Ver documento completo"
+                                                                        >
+                                                                            <ExternalLink size={14} />
+                                                                        </button>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(idx, false); }}
+                                                                            className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                                                        >
+                                                                            <X size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                            <div 
+                                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); document.getElementById('file-upload-input')?.click(); }}
+                                                                className="relative aspect-square rounded-xl overflow-hidden group/item border-2 border-dashed border-slate-700 hover:border-brand-500/50 flex flex-col items-center justify-center cursor-pointer hover:bg-brand-500/5 transition-colors"
+                                                            >
+                                                                <div className="p-3 bg-brand-500/10 rounded-full mb-2 group-hover/item:scale-110 transition-transform">
+                                                                    <Upload size={24} className="text-brand-500" />
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase text-slate-500 group-hover/item:text-brand-400">Añadir Más</span>
                                                             </div>
-                                                        ))}
+                                                        </div>
                                                     </div>
                                                 )}
 
-                                                <div className="mt-6 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20">
-                                                    <p className="text-[9px] text-brand-600 dark:text-brand-400 font-black uppercase tracking-widest text-center leading-tight">
-                                                        Límites: PDF e Imágenes 30MB c/u<br/>
-                                                        (Multi-archivos activado)
+                                                <div className="mt-8 px-3 py-1.5 bg-brand-500/5 dark:bg-brand-500/10 rounded-lg border border-brand-500/20 w-fit">
+                                                    <p className="text-[9px] text-brand-600 dark:text-brand-400 font-bold uppercase tracking-widest text-center leading-tight">
+                                                        Límite: 30MB c/u
                                                     </p>
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                     <input 
+                                        id="file-upload-input"
                                         type="file" 
                                         className="hidden" 
                                         accept=".pdf,.jpg,.jpeg,.png" 
