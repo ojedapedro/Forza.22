@@ -217,9 +217,8 @@ export const Approvals: React.FC<ApprovalsProps> = ({
         let changed = false;
 
         if (item === 'proposedDatesApproved') {
-            const isTaxCategory = !!getTaxConfig(selectedPayment.category as any);
             if (newValue) {
-                if (selectedPayment.proposedDueDate && !isTaxCategory) {
+                if (selectedPayment.proposedDueDate) {
                     updatedPayment.previousDueDate = selectedPayment.dueDate;
                     updatedPayment.dueDate = selectedPayment.proposedDueDate;
                 }
@@ -237,7 +236,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                 }
                 changed = true;
             } else {
-                if (selectedPayment.previousDueDate && !isTaxCategory) {
+                if (selectedPayment.previousDueDate) {
                     updatedPayment.dueDate = selectedPayment.previousDueDate;
                     updatedPayment.previousDueDate = undefined;
                 }

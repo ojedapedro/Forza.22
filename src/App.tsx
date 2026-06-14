@@ -609,13 +609,13 @@ function App({ user }: AppProps = {}) {
           documentDate: paymentData.documentDate,
           documentAmount: paymentData.documentAmount,
           documentName: paymentData.documentName,
-          proposedAmount: paymentData.proposedAmount,
-          proposedPaymentDate: paymentData.proposedPaymentDate,
-          proposedDueDate: paymentData.proposedDueDate,
-          proposedDaysToExpire: paymentData.proposedDaysToExpire,
-          proposedFrequency: paymentData.proposedFrequency,
-          proposedStatus: paymentData.proposedStatus,
-          proposedJustification: paymentData.proposedJustification,
+          proposedAmount: paymentData.proposedAmount !== undefined ? paymentData.proposedAmount : (null as any),
+          proposedPaymentDate: paymentData.proposedPaymentDate !== undefined ? paymentData.proposedPaymentDate : (null as any),
+          proposedDueDate: paymentData.proposedDueDate !== undefined ? paymentData.proposedDueDate : (null as any),
+          proposedDaysToExpire: paymentData.proposedDaysToExpire !== undefined ? paymentData.proposedDaysToExpire : (null as any),
+          proposedFrequency: paymentData.proposedFrequency !== undefined ? paymentData.proposedFrequency : (null as any),
+          proposedStatus: paymentData.proposedStatus !== undefined ? paymentData.proposedStatus : (null as any),
+          proposedJustification: paymentData.proposedJustification !== undefined ? paymentData.proposedJustification : (null as any),
           dueDateRate: paymentData.dueDateRate,
           dueDateAmountBs: paymentData.dueDateAmountBs,
           storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
@@ -699,22 +699,40 @@ function App({ user }: AppProps = {}) {
 
         let newDaysToExpire = paymentToUpdate.daysToExpire;
 
-        if (newDueDate && newDueDate !== paymentToUpdate.dueDate) {
-            notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${newDueDate}`);
-            
-            // Recalcular daysToExpire si cambia la fecha de vencimiento
-            if (paymentToUpdate.paymentDate) {
-                const d1 = new Date(paymentToUpdate.paymentDate);
-                const d2 = new Date(newDueDate);
-                const diffTime = d2.getTime() - d1.getTime();
-                newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if (newDaysToExpire !== paymentToUpdate.daysToExpire) {
-                    notes.push(`Días a Vencer: ${paymentToUpdate.daysToExpire || 0} ➔ ${newDaysToExpire}`);
-                }
+        let finalDueDate = newDueDate || paymentToUpdate.dueDate;
+        let finalAmount = newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.amount;
+        let finalPaymentDate = paymentToUpdate.paymentDate;
+
+        // Apply proposed changes automatically if present
+        if (paymentToUpdate.proposedDueDate) {
+             finalDueDate = paymentToUpdate.proposedDueDate;
+             notes.push(`Fe. Venc: ${paymentToUpdate.dueDate} ➔ Propuesta: ${finalDueDate}`);
+        }
+        if (paymentToUpdate.proposedPaymentDate) {
+             finalPaymentDate = paymentToUpdate.proposedPaymentDate;
+             notes.push(`Fe. Pago: ${paymentToUpdate.paymentDate || 'N/A'} ➔ Propuesta: ${finalPaymentDate}`);
+        }
+        if (paymentToUpdate.proposedAmount !== undefined) {
+             finalAmount = paymentToUpdate.proposedAmount;
+             notes.push(`Monto: ${paymentToUpdate.amount} ➔ Propuesta: ${finalAmount}`);
+        }
+
+        if (finalDueDate && finalDueDate !== paymentToUpdate.dueDate && !paymentToUpdate.proposedDueDate) {
+            notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${finalDueDate}`);
+        }
+
+        // Recalcular daysToExpire si cambiaron las fechas
+        if (finalPaymentDate && finalDueDate) {
+            const d1 = new Date(finalPaymentDate);
+            const d2 = new Date(finalDueDate);
+            const diffTime = d2.getTime() - d1.getTime();
+            newDaysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (newDaysToExpire !== paymentToUpdate.daysToExpire) {
+                notes.push(`Días a Vencer: ${paymentToUpdate.daysToExpire || 0} ➔ ${newDaysToExpire}`);
             }
         }
 
-        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.amount) {
+        if (newBudgetAmount !== undefined && newBudgetAmount !== paymentToUpdate.amount && paymentToUpdate.proposedAmount === undefined) {
             notes.push(`Monto: ${paymentToUpdate.amount || 'N/A'} ➔ ${newBudgetAmount}`);
         }
 
@@ -733,11 +751,19 @@ function App({ user }: AppProps = {}) {
         const updatedPayment: Payment = {
             ...paymentToUpdate,
             status: PaymentStatus.APPROVED,
-            dueDate: newDueDate || paymentToUpdate.dueDate,
+            dueDate: finalDueDate,
+            paymentDate: finalPaymentDate,
             daysToExpire: newDaysToExpire,
-            amount: newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.amount,
+            amount: finalAmount,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log],
-            checklist: checklist || paymentToUpdate.checklist
+            checklist: checklist || paymentToUpdate.checklist,
+            // Clear proposed values after applying them using null
+            // so they are not stripped by cleanObject
+            proposedDueDate: null as any,
+            proposedPaymentDate: null as any,
+            proposedAmount: null as any,
+            proposedDaysToExpire: null as any,
+            proposedStatus: null as any,
         };
 
         if (updatedPayment.originalBudget !== undefined) {
@@ -823,11 +849,40 @@ function App({ user }: AppProps = {}) {
           note: `Aprobación masiva de ${pendingPayments.length} pagos`
       };
 
-      const updatedPayments = pendingPayments.map(p => ({
-          ...p,
-          status: PaymentStatus.APPROVED,
-          history: p.history ? [...p.history, log] : [log]
-      }));
+      const updatedPayments = pendingPayments.map(p => {
+          let updatedP = {
+              ...p,
+              status: PaymentStatus.APPROVED,
+              history: p.history ? [...p.history, log] : [log]
+          };
+
+          if (p.proposedDueDate) {
+              updatedP.dueDate = p.proposedDueDate;
+          }
+          if (p.proposedPaymentDate) {
+              updatedP.paymentDate = p.proposedPaymentDate;
+          }
+          if (p.proposedAmount !== undefined) {
+              updatedP.amount = p.proposedAmount;
+          }
+
+          if (updatedP.paymentDate && updatedP.dueDate) {
+              const d1 = new Date(updatedP.paymentDate);
+              const d2 = new Date(updatedP.dueDate);
+              const diffTime = d2.getTime() - d1.getTime();
+              updatedP.daysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          }
+
+          // Clear proposals using null to ensure they are removed/cleared in Firestore
+          // since undefined is stripped by cleanObject
+          updatedP.proposedDueDate = null as any;
+          updatedP.proposedPaymentDate = null as any;
+          updatedP.proposedAmount = null as any;
+          updatedP.proposedDaysToExpire = null as any;
+          updatedP.proposedStatus = null as any;
+
+          return updatedP;
+      });
 
       try {
           for (const p of updatedPayments) {
