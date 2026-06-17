@@ -714,10 +714,13 @@ function App({ user }: AppProps = {}) {
         let finalAmount = newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.amount;
         let finalPaymentDate = paymentToUpdate.paymentDate;
 
+        let didApplyNextCycle = false;
+
         // Apply proposed changes automatically if present
         if (paymentToUpdate.proposedDueDate) {
              finalDueDate = paymentToUpdate.proposedDueDate;
              notes.push(`Fe. Venc: ${paymentToUpdate.dueDate} ➔ Propuesta: ${finalDueDate}`);
+             didApplyNextCycle = true;
         }
         if (paymentToUpdate.proposedPaymentDate) {
              finalPaymentDate = paymentToUpdate.proposedPaymentDate;
@@ -727,6 +730,7 @@ function App({ user }: AppProps = {}) {
              finalAmount = paymentToUpdate.proposedAmount;
              notes.push(`Monto: ${paymentToUpdate.amount} ➔ Propuesta: ${finalAmount}`);
         }
+
 
         if (finalDueDate && finalDueDate !== paymentToUpdate.dueDate && !paymentToUpdate.proposedDueDate) {
             notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${finalDueDate}`);
@@ -761,7 +765,7 @@ function App({ user }: AppProps = {}) {
 
         const updatedPaymentLocal: Payment = {
             ...paymentToUpdate,
-            status: PaymentStatus.APPROVED,
+            status: didApplyNextCycle ? PaymentStatus.PENDING : PaymentStatus.APPROVED,
             dueDate: finalDueDate,
             paymentDate: finalPaymentDate,
             daysToExpire: newDaysToExpire,
@@ -883,7 +887,7 @@ function App({ user }: AppProps = {}) {
       const localUpdatedPayments = pendingPayments.map(p => {
           let updatedP = {
               ...p,
-              status: PaymentStatus.APPROVED,
+              status: p.proposedDueDate ? PaymentStatus.PENDING : PaymentStatus.APPROVED,
               history: p.history ? [...p.history, log] : [log]
           };
 
