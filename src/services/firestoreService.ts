@@ -79,7 +79,7 @@ export function cleanObject(obj: any): any {
     return obj;
   }
 
-  if (obj instanceof Date) {
+  if (obj instanceof Date || (obj && typeof obj === 'object' && typeof obj._methodName === 'string')) {
     return obj;
   }
 

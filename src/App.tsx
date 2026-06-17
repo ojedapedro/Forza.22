@@ -22,6 +22,7 @@ import { Payment, PaymentStatus, Role, AuditLog, User, Category, BudgetEntry, Sy
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from './services/api';
+import { deleteField } from 'firebase/firestore';
 import { authService } from './services/auth';
 import { firestoreService } from './services/firestoreService';
 import { notificationService } from './services/notificationService';
@@ -592,7 +593,7 @@ function App({ user }: AppProps = {}) {
             (isUpdate && originalPayment?.status === PaymentStatus.PENDING && newStatus === PaymentStatus.UPLOADED);
 
         // Create the payment object - Whitelist approach to avoid polluting with large state objects
-        const paymentToSave: Payment = {
+        const paymentLocal: Payment = {
           ...(originalPayment || {}),
           id: paymentId,
           storeId: paymentData.storeId,
@@ -609,13 +610,13 @@ function App({ user }: AppProps = {}) {
           documentDate: paymentData.documentDate,
           documentAmount: paymentData.documentAmount,
           documentName: paymentData.documentName,
-          proposedAmount: paymentData.proposedAmount !== undefined ? paymentData.proposedAmount : (null as any),
-          proposedPaymentDate: paymentData.proposedPaymentDate !== undefined ? paymentData.proposedPaymentDate : (null as any),
-          proposedDueDate: paymentData.proposedDueDate !== undefined ? paymentData.proposedDueDate : (null as any),
-          proposedDaysToExpire: paymentData.proposedDaysToExpire !== undefined ? paymentData.proposedDaysToExpire : (null as any),
-          proposedFrequency: paymentData.proposedFrequency !== undefined ? paymentData.proposedFrequency : (null as any),
-          proposedStatus: paymentData.proposedStatus !== undefined ? paymentData.proposedStatus : (null as any),
-          proposedJustification: paymentData.proposedJustification !== undefined ? paymentData.proposedJustification : (null as any),
+          proposedAmount: paymentData.proposedAmount,
+          proposedPaymentDate: paymentData.proposedPaymentDate,
+          proposedDueDate: paymentData.proposedDueDate,
+          proposedDaysToExpire: paymentData.proposedDaysToExpire,
+          proposedFrequency: paymentData.proposedFrequency,
+          proposedStatus: paymentData.proposedStatus,
+          proposedJustification: paymentData.proposedJustification,
           dueDateRate: paymentData.dueDateRate,
           dueDateAmountBs: paymentData.dueDateAmountBs,
           storeName: stores.find(s => s.id === paymentData.storeId)?.name || originalPayment?.storeName || 'Tienda Desconocida',
@@ -631,40 +632,50 @@ function App({ user }: AppProps = {}) {
           receiptUrl: attachments[0] || undefined,
           receiptUrl2: attachments[1] || undefined,
         };
-        
-        // Final safety check: remove any keys that might have been spread from originalPayment but shouldn't be there
+
         const forbiddenKeys = ['file', 'file2', 'files', 'previewUrls', 'blob', 'dataUrl'];
         forbiddenKeys.forEach(key => {
-          if ((paymentToSave as any)[key]) delete (paymentToSave as any)[key];
+          if ((paymentLocal as any)[key]) delete (paymentLocal as any)[key];
         });
+
+        const paymentToSave: any = {
+           ...paymentLocal,
+           proposedAmount: paymentLocal.proposedAmount !== undefined ? paymentLocal.proposedAmount : deleteField(),
+           proposedPaymentDate: paymentLocal.proposedPaymentDate !== undefined ? paymentLocal.proposedPaymentDate : deleteField(),
+           proposedDueDate: paymentLocal.proposedDueDate !== undefined ? paymentLocal.proposedDueDate : deleteField(),
+           proposedDaysToExpire: paymentLocal.proposedDaysToExpire !== undefined ? paymentLocal.proposedDaysToExpire : deleteField(),
+           proposedFrequency: paymentLocal.proposedFrequency !== undefined ? paymentLocal.proposedFrequency : deleteField(),
+           proposedStatus: paymentLocal.proposedStatus !== undefined ? paymentLocal.proposedStatus : deleteField(),
+           proposedJustification: paymentLocal.proposedJustification !== undefined ? paymentLocal.proposedJustification : deleteField(),
+        };
 
         console.log("💾 Guardando pago en Firestore...");
         if (isUpdate) {
             await firestoreService.updatePayment(paymentToSave);
-            setPayments(prev => prev.map(p => p.id === paymentToSave.id ? paymentToSave : p));
+            setPayments(prev => prev.map(p => p.id === paymentLocal.id ? paymentLocal : p));
             setNotification('✅ Pago corregido y enviado a revisión.');
         } else {
-            await firestoreService.createPayment(paymentToSave);
-            setPayments(prev => [paymentToSave, ...prev]);
+            await firestoreService.createPayment(paymentLocal);
+            setPayments(prev => [paymentLocal, ...prev]);
             setNotification('✅ Pago guardado con éxito.');
             
             // Background notification
-            notificationService.notifyNewPayment(paymentToSave, users, settings);
+            notificationService.notifyNewPayment(paymentLocal, users, settings);
         }
 
         // --- INTEGRACIÓN CON PLANIFICACIÓN ANUAL (PRESUPUESTO) ---
         // Se registra la propuesta o el pago proyectado en el presupuesto para visualización en calendario
-        const proposalBudgetId = `BUD-PROP-${paymentToSave.id}`;
-        const isProposal = paymentToSave.proposedAmount !== undefined || paymentToSave.proposedDueDate;
+        const proposalBudgetId = `BUD-PROP-${paymentLocal.id}`;
+        const isProposal = paymentLocal.proposedAmount !== undefined || paymentLocal.proposedDueDate;
         
         const budgetEntry: BudgetEntry = {
             id: proposalBudgetId,
-            storeId: paymentToSave.storeId,
-            date: paymentToSave.proposedDueDate || paymentToSave.dueDate,
-            title: `${isProposal ? '[PROPUESTA] ' : '[PROGRAMADO] '}${paymentToSave.specificType}`,
-            amount: paymentToSave.proposedAmount ?? paymentToSave.amount,
-            category: paymentToSave.category,
-            notes: `Registro de: ${paymentToSave.storeName}. Justificación: ${paymentToSave.proposedJustification || 'Sincronización automática'}`
+            storeId: paymentLocal.storeId,
+            date: paymentLocal.proposedDueDate || paymentLocal.dueDate,
+            title: `${isProposal ? '[PROPUESTA] ' : '[PROGRAMADO] '}${paymentLocal.specificType}`,
+            amount: paymentLocal.proposedAmount ?? paymentLocal.amount,
+            category: paymentLocal.category,
+            notes: `Registro de: ${paymentLocal.storeName}. Justificación: ${paymentLocal.proposedJustification || 'Sincronización automática'}`
         };
         
         try {
@@ -748,7 +759,7 @@ function App({ user }: AppProps = {}) {
             note: actionNote
         };
 
-        const updatedPayment: Payment = {
+        const updatedPaymentLocal: Payment = {
             ...paymentToUpdate,
             status: PaymentStatus.APPROVED,
             dueDate: finalDueDate,
@@ -757,22 +768,42 @@ function App({ user }: AppProps = {}) {
             amount: finalAmount,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log],
             checklist: checklist || paymentToUpdate.checklist,
-            // Clear proposed values after applying them using null
-            // so they are not stripped by cleanObject
-            proposedDueDate: null as any,
-            proposedPaymentDate: null as any,
-            proposedAmount: null as any,
-            proposedDaysToExpire: null as any,
-            proposedStatus: null as any,
         };
 
-        if (updatedPayment.originalBudget !== undefined) {
-            updatedPayment.isOverBudget = updatedPayment.amount > updatedPayment.originalBudget;
+        // Explicitly clear proposed from local state
+        delete updatedPaymentLocal.proposedDueDate;
+        delete updatedPaymentLocal.proposedPaymentDate;
+        delete updatedPaymentLocal.proposedAmount;
+        delete updatedPaymentLocal.proposedDaysToExpire;
+        delete updatedPaymentLocal.proposedStatus;
+        delete updatedPaymentLocal.proposedFrequency;
+        delete updatedPaymentLocal.proposedJustification;
+        delete updatedPaymentLocal.previousDueDate;
+        delete updatedPaymentLocal.previousPaymentDate;
+        delete updatedPaymentLocal.previousAmount;
+
+        const payloadForFirestore: Payment = {
+            ...updatedPaymentLocal,
+            proposedDueDate: deleteField() as any,
+            proposedPaymentDate: deleteField() as any,
+            proposedAmount: deleteField() as any,
+            proposedDaysToExpire: deleteField() as any,
+            proposedStatus: deleteField() as any,
+            proposedFrequency: deleteField() as any,
+            proposedJustification: deleteField() as any,
+            previousDueDate: deleteField() as any,
+            previousPaymentDate: deleteField() as any,
+            previousAmount: deleteField() as any,
+        };
+
+        if (updatedPaymentLocal.originalBudget !== undefined) {
+            updatedPaymentLocal.isOverBudget = updatedPaymentLocal.amount > updatedPaymentLocal.originalBudget;
+            payloadForFirestore.isOverBudget = updatedPaymentLocal.isOverBudget;
         }
 
         try {
-            await firestoreService.updatePayment(updatedPayment);
-            setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
+            await firestoreService.updatePayment(payloadForFirestore);
+            setPayments(prev => prev.map(p => p.id === id ? updatedPaymentLocal : p));
             setNotification(`Pago ${id} Aprobado y Sincronizado`);
 
             // --- SINCRONIZACIÓN CON PRESUPUESTO AL APROBAR ---
@@ -782,12 +813,12 @@ function App({ user }: AppProps = {}) {
             
             const finalBudgetEntry: BudgetEntry = {
                 id: finalBudgetId, 
-                storeId: updatedPayment.storeId,
-                date: updatedPayment.dueDate,
-                title: `[APROBADO] ${updatedPayment.specificType}`,
-                amount: updatedPayment.amount,
-                category: updatedPayment.category,
-                notes: `Aprobado por auditor. Ref: ${id}. Rubro: ${updatedPayment.category}`
+                storeId: updatedPaymentLocal.storeId,
+                date: updatedPaymentLocal.dueDate,
+                title: `[APROBADO] ${updatedPaymentLocal.specificType}`,
+                amount: updatedPaymentLocal.amount,
+                category: updatedPaymentLocal.category,
+                notes: `Aprobado por auditor. Ref: ${id}. Rubro: ${updatedPaymentLocal.category}`
             };
             
             try {
@@ -849,7 +880,7 @@ function App({ user }: AppProps = {}) {
           note: `Aprobación masiva de ${pendingPayments.length} pagos`
       };
 
-      const updatedPayments = pendingPayments.map(p => {
+      const localUpdatedPayments = pendingPayments.map(p => {
           let updatedP = {
               ...p,
               status: PaymentStatus.APPROVED,
@@ -873,23 +904,40 @@ function App({ user }: AppProps = {}) {
               updatedP.daysToExpire = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           }
 
-          // Clear proposals using null to ensure they are removed/cleared in Firestore
-          // since undefined is stripped by cleanObject
-          updatedP.proposedDueDate = null as any;
-          updatedP.proposedPaymentDate = null as any;
-          updatedP.proposedAmount = null as any;
-          updatedP.proposedDaysToExpire = null as any;
-          updatedP.proposedStatus = null as any;
+          // Clear proposals for local state
+          delete updatedP.proposedDueDate;
+          delete updatedP.proposedPaymentDate;
+          delete updatedP.proposedAmount;
+          delete updatedP.proposedDaysToExpire;
+          delete updatedP.proposedStatus;
+          delete updatedP.proposedFrequency;
+          delete updatedP.proposedJustification;
+          delete updatedP.previousDueDate;
+          delete updatedP.previousPaymentDate;
+          delete updatedP.previousAmount;
 
           return updatedP;
       });
 
       try {
-          for (const p of updatedPayments) {
-              await firestoreService.updatePayment(p);
+          for (const localP of localUpdatedPayments) {
+              const pPayload: any = {
+                  ...localP,
+                  proposedDueDate: deleteField(),
+                  proposedPaymentDate: deleteField(),
+                  proposedAmount: deleteField(),
+                  proposedDaysToExpire: deleteField(),
+                  proposedStatus: deleteField(),
+                  proposedFrequency: deleteField(),
+                  proposedJustification: deleteField(),
+                  previousDueDate: deleteField(),
+                  previousPaymentDate: deleteField(),
+                  previousAmount: deleteField(),
+              };
+              await firestoreService.updatePayment(pPayload);
           }
           setPayments(prev => prev.map(p => {
-              const updated = updatedPayments.find(up => up.id === p.id);
+              const updated = localUpdatedPayments.find(up => up.id === p.id);
               return updated ? updated : p;
           }));
           setNotification(`✅ ${pendingPayments.length} pagos aprobados.`);
