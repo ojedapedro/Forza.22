@@ -1063,7 +1063,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                                 </div>
                                                 <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 font-mono text-xs">
                                                     <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${(selectedPayment.originalBudget || selectedPayment.amount || 0).toLocaleString()}</div>
-                                                    <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${(selectedPayment.documentAmount || selectedPayment.amount).toLocaleString()}</div>
+                                                    <div className="text-center py-4 font-bold text-slate-700 dark:text-slate-300">${((selectedPayment.documentAmount ?? selectedPayment.amount) || 0).toLocaleString()}</div>
                                                     <div className={`text-center py-4 font-black ${budgetAnalysis && budgetAnalysis.percent > 0.01 ? 'text-red-600' : budgetAnalysis && budgetAnalysis.percent < -0.01 ? 'text-emerald-600' : 'text-blue-600'}`}>
                                                         {budgetAnalysis ? `${budgetAnalysis.percent > 0.01 ? '+' : ''}${budgetAnalysis.percent.toFixed(1)}%` : '0%'}
                                                     </div>
@@ -1089,7 +1089,7 @@ export const Approvals: React.FC<ApprovalsProps> = ({
                                             </div>
                                             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col items-center justify-center py-4 h-[68px]">
                                                 <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
-                                                    ${(selectedPayment.proposedAmount ?? selectedPayment.amount).toLocaleString()}
+                                                    ${((selectedPayment.proposedAmount ?? selectedPayment.amount) || 0).toLocaleString()}
                                                 </div>
                                             </div>
                                         </div>

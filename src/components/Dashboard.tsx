@@ -148,7 +148,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const tableData = subPayments.map(p => [
           formatDate(p.submittedDate || p.dueDate),
           p.storeName,
-          `$${p.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          `$${(p.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
           p.status
         ]);
 
@@ -560,7 +560,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString()}</p>
+                  <p className="text-sm font-bold text-slate-950 dark:text-slate-50">${(payment.amount || 0).toLocaleString()}</p>
                   <p className="text-[10px] text-slate-500">
                     Bs. {(payment.dueDateAmountBs || (payment.amount * exchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
@@ -698,7 +698,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
 
                         <div className="col-span-2 flex flex-col items-end gap-0.5 w-full sm:w-auto">
-                            <span className="font-bold text-sm text-slate-950 dark:text-slate-50">${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-bold text-sm text-slate-950 dark:text-slate-50">${(payment.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             <span className="text-[10px] font-medium text-slate-500">
                               Bs. {(payment.dueDateAmountBs || (payment.amount * exchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>

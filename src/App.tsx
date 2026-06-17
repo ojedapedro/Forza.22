@@ -1297,7 +1297,7 @@ function App({ user }: AppProps = {}) {
                             </div>
                             
                             <div className="flex items-center justify-between mt-auto">
-                              <span className="font-bold text-slate-900 dark:text-white">${payment.amount.toLocaleString()}</span>
+                              <span className="font-bold text-slate-900 dark:text-white">${(payment.amount || 0).toLocaleString()}</span>
                               <div className="flex items-center gap-1 text-pink-600 font-bold text-xs">
                                 Corregir <ChevronRight size={14} />
                               </div>

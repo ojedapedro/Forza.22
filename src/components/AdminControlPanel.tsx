@@ -46,10 +46,10 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
   // Statistics Calculations
   const pendingPayments = payments.filter(p => p.status === PaymentStatus.PENDING || p.status === PaymentStatus.UPLOADED);
   const overduePayments = payments.filter(p => p.status === PaymentStatus.OVERDUE);
-  const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
   
   const approvedPayments = payments.filter(p => p.status === PaymentStatus.APPROVED || p.status === PaymentStatus.PAID);
-  const totalApprovedAmount = approvedPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalApprovedAmount = approvedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   // Store Health Distribution
   const healthData = [
@@ -240,7 +240,7 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">${p.amount.toLocaleString()}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">${(p.amount || 0).toLocaleString()}</p>
                     <span className={`inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${
                       p.status === PaymentStatus.APPROVED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
                       p.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 

@@ -938,7 +938,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
                                     <div className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-3">
                                         <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter mb-1">Monto Estimado</span>
-                                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase">${alert.amount.toLocaleString()} <span className="text-[10px] text-slate-400">USD</span></span>
+                                        <span className="text-sm font-black text-slate-900 dark:text-white uppercase">${(alert.amount || 0).toLocaleString()} <span className="text-[10px] text-slate-400">USD</span></span>
                                     </div>
                                 </div>
                             </div>
@@ -946,7 +946,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
                         <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pl-4 border-l border-slate-100 dark:border-slate-800 md:border-l-0 md:pl-0">
                             <div className="text-right">
-                                <span className="block text-2xl font-bold text-slate-900 dark:text-white">${alert.amount.toLocaleString()}</span>
+                                <span className="block text-2xl font-bold text-slate-900 dark:text-white">${(alert.amount || 0).toLocaleString()}</span>
                                 <span className="text-xs text-slate-400">Monto estimado</span>
                             </div>
                             <div className="flex gap-2">
