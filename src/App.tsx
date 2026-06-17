@@ -714,13 +714,10 @@ function App({ user }: AppProps = {}) {
         let finalAmount = newBudgetAmount !== undefined ? newBudgetAmount : paymentToUpdate.amount;
         let finalPaymentDate = paymentToUpdate.paymentDate;
 
-        let didApplyNextCycle = false;
-
         // Apply proposed changes automatically if present
         if (paymentToUpdate.proposedDueDate) {
              finalDueDate = paymentToUpdate.proposedDueDate;
              notes.push(`Fe. Venc: ${paymentToUpdate.dueDate} ➔ Propuesta: ${finalDueDate}`);
-             didApplyNextCycle = true;
         }
         if (paymentToUpdate.proposedPaymentDate) {
              finalPaymentDate = paymentToUpdate.proposedPaymentDate;
@@ -730,7 +727,18 @@ function App({ user }: AppProps = {}) {
              finalAmount = paymentToUpdate.proposedAmount;
              notes.push(`Monto: ${paymentToUpdate.amount} ➔ Propuesta: ${finalAmount}`);
         }
-
+        
+        let finalFrequency = paymentToUpdate.frequency;
+        if (paymentToUpdate.proposedFrequency) {
+            finalFrequency = paymentToUpdate.proposedFrequency;
+            if (paymentToUpdate.proposedFrequency !== paymentToUpdate.frequency) {
+                notes.push(`Frecuencia: ${paymentToUpdate.frequency} ➔ Propuesta: ${finalFrequency}`);
+            }
+        }
+        
+        if (paymentToUpdate.proposedDaysToExpire !== undefined) {
+            newDaysToExpire = paymentToUpdate.proposedDaysToExpire;
+        }
 
         if (finalDueDate && finalDueDate !== paymentToUpdate.dueDate && !paymentToUpdate.proposedDueDate) {
             notes.push(`Fecha Vencimiento: ${paymentToUpdate.dueDate} ➔ ${finalDueDate}`);
@@ -765,10 +773,11 @@ function App({ user }: AppProps = {}) {
 
         const updatedPaymentLocal: Payment = {
             ...paymentToUpdate,
-            status: didApplyNextCycle ? PaymentStatus.PENDING : PaymentStatus.APPROVED,
+            status: PaymentStatus.APPROVED,
             dueDate: finalDueDate,
             paymentDate: finalPaymentDate,
             daysToExpire: newDaysToExpire,
+            frequency: finalFrequency,
             amount: finalAmount,
             history: paymentToUpdate.history ? [...paymentToUpdate.history, log] : [log],
             checklist: checklist || paymentToUpdate.checklist,
@@ -887,7 +896,7 @@ function App({ user }: AppProps = {}) {
       const localUpdatedPayments = pendingPayments.map(p => {
           let updatedP = {
               ...p,
-              status: p.proposedDueDate ? PaymentStatus.PENDING : PaymentStatus.APPROVED,
+              status: PaymentStatus.APPROVED,
               history: p.history ? [...p.history, log] : [log]
           };
 
@@ -900,8 +909,14 @@ function App({ user }: AppProps = {}) {
           if (p.proposedAmount !== undefined) {
               updatedP.amount = p.proposedAmount;
           }
+          if (p.proposedFrequency) {
+              updatedP.frequency = p.proposedFrequency;
+          }
+          if (p.proposedDaysToExpire !== undefined) {
+              updatedP.daysToExpire = p.proposedDaysToExpire;
+          }
 
-          if (updatedP.paymentDate && updatedP.dueDate) {
+          if (updatedP.paymentDate && updatedP.dueDate && p.proposedDaysToExpire === undefined) {
               const d1 = new Date(updatedP.paymentDate);
               const d2 = new Date(updatedP.dueDate);
               const diffTime = d2.getTime() - d1.getTime();
