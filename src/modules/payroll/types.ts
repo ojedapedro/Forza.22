@@ -5,6 +5,29 @@ export interface PayrollLiability {
   type: 'WORKER' | 'EMPLOYER';
 }
 
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string; // YYYY-MM-DD
+  checkIn: string | null; // ISO String or HH:mm
+  checkOut: string | null; // ISO String or HH:mm
+  status: 'PRESENTE' | 'AUSENTE' | 'RETARDO';
+  hoursWorked: number;
+}
+
+export interface DailyPayrollEntry {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  dailyRate: number; // baseSalary / 30
+  bonuses: { name: string; amount: number }[];
+  deductions: { name: string; amount: number }[];
+  totalNet: number; // dailyRate + bonuses - deductions
+  status: 'PENDIENTE' | 'PROCESADO';
+}
+
 export interface PayrollEntry {
   id: string;
   employeeName: string;

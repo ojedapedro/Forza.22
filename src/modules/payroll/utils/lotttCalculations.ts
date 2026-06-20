@@ -211,3 +211,53 @@ export const getParafiscalDiff = (name: string, amount: number, baseSalary: numb
   const diff = amount - theoretical;
   return { theoretical, diff, hasDiff: Math.abs(diff) > 0.01 };
 };
+
+export const calculateDailyPayroll = (
+  employee: Employee,
+  date: string,
+  nightHours: number = 0,
+  sundays: number = 0,
+  overtime: number = 0
+): import('../types').DailyPayrollEntry => {
+  const dailyRate = employee.baseSalary / 30;
+  
+  const extras = calculateLOTTTExtras(employee.baseSalary, nightHours, sundays, overtime);
+  
+  // Daily fraction of default bonuses and deductions
+  const dailyBonuses = employee.defaultBonuses.map(b => ({
+    name: b.name,
+    amount: Number((b.amount / 30).toFixed(2))
+  }));
+  
+  if (extras.bonoNocturnoAmount > 0) {
+    dailyBonuses.push({ name: 'Bono Nocturno', amount: extras.bonoNocturnoAmount });
+  }
+  if (extras.sundaysHolidaysAmount > 0) {
+    dailyBonuses.push({ name: 'Domingos/Feriados', amount: extras.sundaysHolidaysAmount });
+  }
+  if (extras.overtimeAmount > 0) {
+    dailyBonuses.push({ name: 'Horas Extra', amount: extras.overtimeAmount });
+  }
+
+  const dailyDeductions = employee.defaultDeductions.map(d => ({
+    name: d.name,
+    amount: Number((d.amount / 30).toFixed(2))
+  }));
+
+  const totalBonuses = dailyBonuses.reduce((sum, b) => sum + b.amount, 0);
+  const totalDeductions = dailyDeductions.reduce((sum, d) => sum + d.amount, 0);
+  const totalNet = Number((dailyRate + totalBonuses - totalDeductions).toFixed(2));
+
+  return {
+    id: `dp_${employee.id}_${date}`,
+    employeeId: employee.id,
+    employeeName: `${employee.name} ${employee.lastName || ''}`.trim(),
+    date,
+    dailyRate: Number(dailyRate.toFixed(2)),
+    bonuses: dailyBonuses,
+    deductions: dailyDeductions,
+    totalNet,
+    status: 'PENDIENTE'
+  };
+};
+

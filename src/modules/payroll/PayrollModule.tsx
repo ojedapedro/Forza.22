@@ -74,6 +74,8 @@ import {
   getParafiscalDiff
 } from './utils/lotttCalculations';
 import { payrollService as service } from './services';
+import { PayrollAttendanceView } from './components/PayrollAttendanceView';
+import { PayrollDailyView } from './components/PayrollDailyView';
 
 import { User, SystemSettings, Store } from '../../types';
 
@@ -96,7 +98,7 @@ interface PayrollModuleProps {
   stores: Store[];
 }
 
-type TabType = 'payroll' | 'employees' | 'ppe-history' | 'shifts';
+type TabType = 'payroll' | 'employees' | 'ppe-history' | 'shifts' | 'attendance' | 'daily-payroll';
 
 export const PayrollModule: React.FC<PayrollModuleProps> = ({ 
   entries, 
@@ -1094,6 +1096,24 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           <Clock size={18} />
           Horarios Rotativos
         </button>
+        <button 
+          onClick={() => setActiveTab('attendance')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'attendance' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+          }`}
+        >
+          <UserCheck size={18} />
+          Asistencia Diaria
+        </button>
+        <button 
+          onClick={() => setActiveTab('daily-payroll')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'daily-payroll' ? 'bg-blue-600 text-slate-900 dark:text-white shadow-lg shadow-blue-900/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
+          }`}
+        >
+          <DollarSign size={18} />
+          Nómina Diaria
+        </button>
       </div>
 
       {activeTab === 'payroll' ? (
@@ -1316,6 +1336,10 @@ export const PayrollModule: React.FC<PayrollModuleProps> = ({
           getShiftForGroup={getShiftForGroup}
           onConfigureWebhook={() => setIsWebhookModalOpen(true)}
         />
+      ) : activeTab === 'attendance' ? (
+        <PayrollAttendanceView employees={employees} />
+      ) : activeTab === 'daily-payroll' ? (
+        <PayrollDailyView employees={employees} />
       ) : (
         <PayrollPPEHistoryTable 
           assignments={allPpeAssignments}
