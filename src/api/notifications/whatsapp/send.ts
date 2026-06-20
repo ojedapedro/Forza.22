@@ -103,7 +103,9 @@ export default async function handler(req: any, res: any) {
   } catch (err: any) {
     console.error('Send WhatsApp Error:', err.message);
     let errorHint = '';
-    if (err.message.includes('exceeded') && (err.message.includes('limit') || err.message.includes('50'))) {
+    if (err.message.includes('Authenticate') || err.status === 401) {
+      errorHint = ' (ERROR: Credenciales de Twilio inválidas. Verifica que ingresaste TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN en el panel Settings, o usa un enlace de CallMeBot en la configuración de la app)';
+    } else if (err.message.includes('exceeded') && (err.message.includes('limit') || err.message.includes('50'))) {
       errorHint = ' (TIP: Has excedido el límite diario de Twilio Trial de 50 mensajes. Usa CallMeBot o mejora tu plan de Twilio).';
     }
     res.status(500).json({ error: 'Failed to send WhatsApp', details: err.message + errorHint });
