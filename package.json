@@ -30,6 +30,7 @@
     "firebase": "^12.11.0",
     "firebase-admin": "^13.8.0",
     "framer-motion": "^12.35.1",
+    "gaxios": "^7.1.5",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
@@ -44,11 +45,14 @@
     "react-window": "^1.8.11",
     "recharts": "^2.12.7",
     "resend": "^6.9.4",
+    "retry-request": "^8.0.3",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "stripe": "^20.4.1",
+    "teeny-request": "^10.1.3",
     "tsx": "^4.21.0",
     "twilio": "^5.13.1",
+    "uuid": "^14.0.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -1,0 +1,6 @@
+{
+  "short_name": "Forza 22",
+  "name": "Forza 22 App",
+  "start_url": "/",
+  "display": "standalone"
+}

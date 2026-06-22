@@ -89,10 +89,10 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
               </div>
               <div className="text-right">
                 <div className="font-mono font-bold text-blue-400">
-                  ${approvedValue.toLocaleString()}
+                  ${approvedValue?.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Bs. {approvedBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  Bs. {approvedBs?.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -113,10 +113,10 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
               </div>
               <div className="text-right">
                 <div className="font-mono font-bold text-yellow-400">
-                  ${pendingValue.toLocaleString()}
+                  ${pendingValue?.toLocaleString()}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Bs. {pendingBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  Bs. {pendingBs?.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
@@ -134,10 +134,10 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
             <span className="text-slate-500 font-medium">Total Proyectado:</span>
             <div className="text-right">
               <div className={`font-mono font-bold ${totalPercent > 100 ? 'text-red-400' : 'text-slate-200'}`}>
-                ${(approvedValue + pendingValue).toLocaleString()}
+                ${(approvedValue + pendingValue)?.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-500">
-                Bs. {totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                Bs. {totalBs?.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@ const CustomFinancialTooltip = ({ active, payload, label, exchangeRate }: any) =
           </div>
           <div className="flex justify-between items-center text-[10px] text-slate-600">
             <span>Presupuesto Base:</span>
-            <span>${budgetTarget.toLocaleString()}</span>
+            <span>${budgetTarget?.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -481,7 +481,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
             log.action,
             log.actorName,
             log.role,
-            `${log.storeName} - ${log.specificType} ($${log.amount.toLocaleString()})`,
+            `${log.storeName} - ${log.specificType} ($${log.amount?.toLocaleString()})`,
             log.note || '-'
         ]);
 
@@ -552,7 +552,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
             log.action,
             log.actorName,
             log.role,
-            `${log.storeName} - ${log.specificType} ($${log.amount.toLocaleString()})`,
+            `${log.storeName} - ${log.specificType} ($${log.amount?.toLocaleString()})`,
             log.note || '-'
         ]);
 
@@ -724,9 +724,9 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
         const kpiY = 60;
         doc.setFontSize(10);
         
-        doc.text(`Total Aprobado: $${totalApproved.toLocaleString()} (Bs. ${totalApprovedBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })})`, 14, kpiY);
+        doc.text(`Total Aprobado: $${totalApproved?.toLocaleString()} (Bs. ${totalApprovedBs?.toLocaleString('es-VE', { minimumFractionDigits: 2 })})`, 14, kpiY);
         doc.text(`Pagos Rechazados: ${totalRejectedCount}`, 14, kpiY + 7);
-        doc.text(`Pendientes: ${totalPendingCount} (Bs. ${totalPendingBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })})`, 14, kpiY + 14);
+        doc.text(`Pendientes: ${totalPendingCount} (Bs. ${totalPendingBs?.toLocaleString('es-VE', { minimumFractionDigits: 2 })})`, 14, kpiY + 14);
 
         doc.text("Detalle de Transacciones", 14, 80);
         
@@ -735,8 +735,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                 formatDate(p.submittedDate || p.dueDate),
                 p.storeName,
                 p.specificType,
-                `$${p.amount.toLocaleString()}`,
-                `Bs. ${(p.dueDateAmountBs || (p.amount * exchangeRate)).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
+                `$${p.amount?.toLocaleString()}`,
+                `Bs. ${(p.dueDateAmountBs || (p.amount * exchangeRate))?.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
                 p.status
             ]);
 
@@ -924,8 +924,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
           {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: 'Monto Aprobado', value: `$${totalApproved.toLocaleString()}`, bsValue: `Bs. ${(totalApproved * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: CheckCircle2, color: 'emerald', sub: 'En selección' },
-            { label: 'Desviación Ppto.', value: `$${totalOverBudgetSum.toLocaleString()}`, bsValue: `Bs. ${(totalOverBudgetSum * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: AlertTriangle, color: 'orange', sub: 'Excedente acumulado' },
+            { label: 'Monto Aprobado', value: `$${totalApproved?.toLocaleString()}`, bsValue: `Bs. ${(totalApproved * exchangeRate)?.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: CheckCircle2, color: 'emerald', sub: 'En selección' },
+            { label: 'Desviación Ppto.', value: `$${totalOverBudgetSum?.toLocaleString()}`, bsValue: `Bs. ${(totalOverBudgetSum * exchangeRate)?.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: AlertTriangle, color: 'orange', sub: 'Excedente acumulado' },
             { label: 'Pagos Rechazados', value: totalRejectedCount, icon: XCircle, color: 'red', sub: 'Revisiones fallidas' },
             { label: 'En Espera', value: totalPendingCount, icon: Clock, color: 'yellow', sub: 'Pendientes de firma' }
           ].map((kpi, i) => (
@@ -997,7 +997,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                         <span className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wider">{monthData.month}</span>
                         <div className="text-right">
                             <div className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Total Mes</div>
-                            <div className="text-sm font-bold text-blue-400 font-mono">${(monthData.totalApproved + monthData.totalPending).toLocaleString()}</div>
+                            <div className="text-sm font-bold text-blue-400 font-mono">${(monthData.totalApproved + monthData.totalPending)?.toLocaleString()}</div>
                         </div>
                     </div>
 
@@ -1006,7 +1006,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                             <div key={`${monthData.month}-${catData.category}`} className="flex flex-col gap-1.5">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{catData.category}</span>
-                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white font-mono">${catData.total.toLocaleString()}</span>
+                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white font-mono">${catData.total?.toLocaleString()}</span>
                                 </div>
                                 <div className="flex h-1.5 w-full bg-white dark:bg-slate-900 rounded-full overflow-hidden">
                                     <div 
@@ -1019,8 +1019,8 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                                     />
                                 </div>
                                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-tighter">
-                                    <span className="text-emerald-500/70">${catData.approved.toLocaleString()}</span>
-                                    <span className="text-yellow-500/70">${catData.pending.toLocaleString()}</span>
+                                    <span className="text-emerald-500/70">${catData.approved?.toLocaleString()}</span>
+                                    <span className="text-yellow-500/70">${catData.pending?.toLocaleString()}</span>
                                 </div>
                             </div>
                         ))}
@@ -1029,11 +1029,11 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                     <div className="mt-6 pt-4 border-t border-slate-700/50 flex justify-between items-center">
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Aprobado</span>
-                            <span className="text-sm font-bold text-emerald-400 font-mono">${monthData.totalApproved.toLocaleString()}</span>
+                            <span className="text-sm font-bold text-emerald-400 font-mono">${monthData.totalApproved?.toLocaleString()}</span>
                         </div>
                         <div className="flex flex-col text-right">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Pendiente</span>
-                            <span className="text-sm font-bold text-yellow-400 font-mono">${monthData.totalPending.toLocaleString()}</span>
+                            <span className="text-sm font-bold text-yellow-400 font-mono">${monthData.totalPending?.toLocaleString()}</span>
                         </div>
                     </div>
                 </motion.div>
@@ -1066,15 +1066,15 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                     <div className="px-5 py-3 bg-slate-100 dark:bg-slate-800/50 backdrop-blur-md rounded-2xl border border-slate-700/50 shadow-inner">
                         <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-widest mb-1">Presupuesto Anual</span>
                         <div className="flex flex-col">
-                          <span className="text-xl font-bold text-slate-900 dark:text-white font-mono">${totalAnnualBudget.toLocaleString()}</span>
-                          <span className="text-[10px] text-slate-500 font-bold">Bs. {(totalAnnualBudget * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
+                          <span className="text-xl font-bold text-slate-900 dark:text-white font-mono">${totalAnnualBudget?.toLocaleString()}</span>
+                          <span className="text-[10px] text-slate-500 font-bold">Bs. {(totalAnnualBudget * exchangeRate)?.toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
                         </div>
                     </div>
                     <div className="px-5 py-3 bg-blue-500/10 backdrop-blur-md rounded-2xl border border-blue-500/20 shadow-inner">
                         <span className="text-[10px] text-blue-400 block uppercase font-bold tracking-widest mb-1">Ejecutado YTD</span>
                         <div className="flex flex-col">
-                          <span className="text-xl font-bold text-blue-400 font-mono">${totalYTDExecuted.toLocaleString()}</span>
-                          <span className="text-[10px] text-blue-400/70 font-bold">Bs. {(totalYTDExecuted * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
+                          <span className="text-xl font-bold text-blue-400 font-mono">${totalYTDExecuted?.toLocaleString()}</span>
+                          <span className="text-[10px] text-blue-400/70 font-bold">Bs. {(totalYTDExecuted * exchangeRate)?.toLocaleString('es-VE', { minimumFractionDigits: 0 })}</span>
                         </div>
                     </div>
                 </div>
@@ -1262,7 +1262,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                     <div className="mt-6 flex items-center justify-between">
                         <div className="flex flex-col">
                             <span className="text-[10px] uppercase font-bold text-blue-200 tracking-widest">Disponible</span>
-                            <span className="text-xl font-bold font-mono">${availableBudget.toLocaleString()}</span>
+                            <span className="text-xl font-bold font-mono">${availableBudget?.toLocaleString()}</span>
                         </div>
                         <button className="p-3 bg-white/20 hover:bg-white/30 rounded-2xl backdrop-blur-md transition-all active:scale-95">
                             <ArrowUpRight size={20} />
@@ -1430,7 +1430,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                                 </div>
                                 <div className="text-right">
                                     <div className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
-                                        ${log.amount.toLocaleString()}
+                                        ${log.amount?.toLocaleString()}
                                     </div>
                                     <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-1">
                                         Ref: {log.paymentId.slice(-6)}
@@ -1550,7 +1550,7 @@ export const Reports: React.FC<ReportsProps> = ({ payments = [], budgets = [], c
                         <div className="text-sm font-bold text-slate-900 dark:text-white">{log.specificType}</div>
                         <div className="text-xs text-slate-500">{log.storeName} ({log.paymentId})</div>
                       </td>
-                      <td className="p-4 text-sm font-bold text-slate-900 dark:text-white text-right font-mono">${log.amount.toLocaleString()}</td>
+                      <td className="p-4 text-sm font-bold text-slate-900 dark:text-white text-right font-mono">${log.amount?.toLocaleString()}</td>
                       <td className="p-4 text-xs text-slate-500 dark:text-slate-400 italic max-w-xs truncate" title={log.note}>
                         {log.note || '-'}
                       </td>

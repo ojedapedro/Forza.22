@@ -84,6 +84,9 @@ service cloud.firestore {
       allow get: if isAuthenticated();
     }
 
+    // Hikvision events / Attendance
+    match /hikvision_events/{id} { allow read: if isAuthenticated(); allow write: if isAdmin() || isAuditor() || isPresidencia(); }
+
     match /{document=**} {
       allow read, write: if false;
     }

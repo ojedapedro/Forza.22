@@ -171,7 +171,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
           <div className="relative z-10">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ejecutado + Propuesto</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
-              ${totalCommitted.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              ${totalCommitted?.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </h3>
             <div className="flex items-center gap-1 text-xs font-bold mt-2 text-blue-500">
               <Activity size={14} />
@@ -185,7 +185,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
           <div className="relative z-10">
             <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-1">Proyección {selectedYear + 1}</p>
             <h3 className="text-2xl font-black tracking-tighter">
-              ${totals.projection.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              ${totals.projection?.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </h3>
             <div className="flex items-center gap-1 text-xs font-bold mt-2 text-blue-200">
               <Zap size={14} />
@@ -199,7 +199,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
           <div className="relative z-10">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Crecimiento Estimado</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
-              +${(totals.projection - totalCommitted).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              +${(totals.projection - totalCommitted)?.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </h3>
             <div className="flex items-center gap-1 text-xs font-bold mt-2 text-slate-500">
               <TrendingUp size={14} />
@@ -248,7 +248,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fontSize: 10, fontWeight: 800, fill: '#94a3b8' }}
-                tickFormatter={(value) => `$${value.toLocaleString()}`}
+                tickFormatter={(value) => `$${value?.toLocaleString()}`}
               />
               <Tooltip 
                 contentStyle={{ 
@@ -296,8 +296,8 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
               {chartData.map((row, i) => (
                 <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                   <td className="p-6 font-black text-slate-900 dark:text-white">{row.name}</td>
-                  <td className="p-6 font-bold text-slate-900 dark:text-white">${row.totalCommitted.toLocaleString()}</td>
-                  <td className="p-6 font-black text-blue-600">${row.projection.toLocaleString()}</td>
+                  <td className="p-6 font-bold text-slate-900 dark:text-white">${row.totalCommitted?.toLocaleString()}</td>
+                  <td className="p-6 font-black text-blue-600">${row.projection?.toLocaleString()}</td>
                   <td className="p-6">
                     {row.totalCommitted > 0 ? (
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase rounded-full">Activo</span>
@@ -322,7 +322,7 @@ export const PredictiveDashboard: React.FC<PredictiveDashboardProps> = ({ paymen
           <ul className="space-y-4">
             <li className="flex gap-3 text-sm font-medium text-blue-800 dark:text-blue-300">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-              Se estima un flujo de caja total de <span className="font-black">${totals.projection.toLocaleString()}</span> para el próximo año fiscal.
+              Se estima un flujo de caja total de <span className="font-black">${totals.projection?.toLocaleString()}</span> para el próximo año fiscal.
             </li>
             <li className="flex gap-3 text-sm font-medium text-blue-800 dark:text-blue-300">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>

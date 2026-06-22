@@ -121,7 +121,7 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
                 <p className="text-blue-100 text-sm font-semibold tracking-wide mb-1 flex items-center gap-2">
                   <DollarSign size={16} className="text-blue-200" /> Presupuesto Ejecutado
                 </p>
-                <p className="text-4xl sm:text-5xl font-black tracking-tighter">${totalApprovedAmount.toLocaleString()}</p>
+                <p className="text-4xl sm:text-5xl font-black tracking-tighter">${totalApprovedAmount?.toLocaleString()}</p>
               </div>
               <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl">
                 <TrendingUp size={24} className="text-white" />
@@ -132,7 +132,7 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
                <div>
                   <p className="text-blue-200 text-xs font-semibold mb-1 uppercase tracking-wider">Monto Vencido</p>
                   <p className="text-2xl font-bold flex items-center gap-2">
-                    ${totalOverdueAmount.toLocaleString()} 
+                    ${totalOverdueAmount?.toLocaleString()} 
                     {totalOverdueAmount > 0 && <AlertCircle size={16} className="text-amber-300" />}
                   </p>
                </div>
@@ -240,7 +240,7 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">${(p.amount || 0).toLocaleString()}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">${(p.amount || 0)?.toLocaleString()}</p>
                     <span className={`inline-block mt-1 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${
                       p.status === PaymentStatus.APPROVED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
                       p.status === PaymentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 

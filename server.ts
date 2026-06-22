@@ -45,8 +45,7 @@ async function startServer() {
     }
   });
 
-  // En AI Studio usamos el puerto 3000, en deploys externos respetamos la variable PORT
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Socket.IO Logic
   io.on('connection', (socket) => {
@@ -100,13 +99,17 @@ async function startServer() {
     console.error('💥 Unhandled Server Error:', err);
     res.status(500).json({ 
       error: 'Error interno del servidor', 
-      details: err.message
+      details: process.env.NODE_ENV === 'production' ? undefined : err.message
     });
   });
 
+  let isProd = process.env.NODE_ENV === 'production' || process.argv[1]?.endsWith('.cjs');
+
+  console.log(`🚀 [Server] Modo detectado al inicio: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'} (NODE_ENV: ${process.env.NODE_ENV || 'no definido'})`);
+
   // Explicitly serve Service Worker and Manifest to avoid SPA fallback issues
   app.get('/service-worker.js', (req, res) => {
-    const swPath = process.env.NODE_ENV === 'production'
+    const swPath = isProd
       ? path.join(process.cwd(), 'dist', 'service-worker.js')
       : path.join(process.cwd(), 'public', 'service-worker.js');
     res.setHeader('Content-Type', 'application/javascript');
@@ -114,7 +117,7 @@ async function startServer() {
   });
 
   app.get('/manifest.json', (req, res) => {
-    const manifestPath = process.env.NODE_ENV === 'production'
+    const manifestPath = isProd
       ? path.join(process.cwd(), 'dist', 'manifest.json')
       : path.join(process.cwd(), 'public', 'manifest.json');
     res.setHeader('Content-Type', 'application/json');
@@ -122,19 +125,16 @@ async function startServer() {
   });
 
   // Vite middleware
-  // En producción (Cloud Run, Vercel, etc.) NODE_ENV debería estar seteado.
-  // Si no está seteado, pero existe la carpeta dist, asumimos producción.
-  let isProd = process.env.NODE_ENV === 'production' || (fs.existsSync(path.join(process.cwd(), 'dist')) && process.env.NODE_ENV !== 'development');
-  
-  console.log(`🚀 [Server] Modo detectado al inicio: ${isProd ? 'PRODUCCIÓN' : 'DESARROLLO'} (NODE_ENV: ${process.env.NODE_ENV || 'no definido'})`);
-
   let vite: any = null;
   if (!isProd) {
     try {
       console.log('📦 [Server] Intentando cargar Vite middleware...');
       const { createServer: createViteServer } = await import('vite');
       vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: { 
+          middlewareMode: true,
+          hmr: process.env.DISABLE_HMR === 'true' ? false : { server: httpServer }
+        },
         appType: 'spa',
       });
       app.use(vite.middlewares);
