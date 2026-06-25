@@ -253,13 +253,17 @@ export async function checkAndSendNotifications() {
         return { to, success: true, method: gatewayUrl ? 'gateway' : 'twilio' };
       } catch (err: any) {
         let errorHint = '';
-        if (err.message.includes('Channel')) {
+        if (err?.message?.includes('Authenticate') || err?.status === 401) {
+          console.warn(`⚠️ Aviso: Twilio no está autenticado para ${to}. Configura las credenciales en los ajustes.`);
+          return { to, success: false, error: 'Credenciales de Twilio no configuradas o inválidas.' };
+        }
+        if (err?.message?.includes('Channel')) {
           errorHint = ' | TIP: El número emisor (' + fromFormatted + ') no está habilitado para WhatsApp en Twilio. Si usas Sandbox, el emisor debe ser whatsapp:+14155238886';
-        } else if (err.message.includes('exceeded') && (err.message.includes('limit') || err.message.includes('50'))) {
+        } else if (err?.message?.includes('exceeded') && (err?.message?.includes('limit') || err?.message?.includes('50'))) {
           errorHint = ' | TIP: Has excedido el límite diario de Twilio Trial (50 msgs). Para enviar más, usa el Gateway de CallMeBot o registra una cuenta paga de Twilio.';
         }
-        console.error(`❌ Error en ${to}:`, err.message);
-        return { to, success: false, error: err.message + errorHint };
+        console.error(`❌ Error enviando a ${to}:`, err?.message);
+        return { to, success: false, error: err?.message + errorHint };
       }
     }));
 

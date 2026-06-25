@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { X, FileDown, ShieldCheck, Calculator, Save } from 'lucide-react';
 import { Employee, PPEItemData, PPEAssignment } from '../types';
 import { formatDate } from '../../../utils';

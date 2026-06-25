@@ -10,7 +10,7 @@ import {
   ChevronRight, Info
 } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface PredictiveDashboardProps {
   payments: Payment[];

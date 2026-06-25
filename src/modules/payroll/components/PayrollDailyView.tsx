@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, RefreshCw, DollarSign, Calculator, Download } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Employee, DailyPayrollEntry } from '../types';
 import { attendanceService } from '../services/attendanceService';
 import { calculateDailyPayroll } from '../utils/lotttCalculations';

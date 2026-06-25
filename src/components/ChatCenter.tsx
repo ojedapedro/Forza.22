@@ -18,7 +18,7 @@ import {
   CheckSquare,
   Activity
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ChatMessage, User, Role } from '../types';
 import { firestoreService } from '../services/firestoreService';
 

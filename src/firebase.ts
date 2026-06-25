@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, setLogLevel } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Import the Firebase configuration
@@ -15,9 +15,12 @@ export const auth = getAuth(app);
 const dbId = (firebaseConfig as any).firestoreDatabaseId;
 console.log(`[Firebase] Initializing Firestore for database: ${dbId || '(default)'}`);
 
+// Set log level to avoid spam from transient network errors
+setLogLevel('error');
+
 // Force long polling for stability in the proxy environment
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 }, dbId);
 
 export const storage = getStorage(app);

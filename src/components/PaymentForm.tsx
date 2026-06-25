@@ -39,7 +39,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { Category, Payment, PaymentStatus, User, Store, PaymentFrequency, AuditLog, Role, BudgetEntry } from '../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { formatDate, getFrequencyDays, calculateNextDueDate, formatDateTime } from '../utils';
 import VenezuelaMap from './VenezuelaMap';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';

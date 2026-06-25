@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Search, Loader2, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Lightbulb, TrendingUp, AlertTriangle, Download, CheckCircle2, ChevronDown, DollarSign } from 'lucide-react';
 import { Payment, PaymentStatus } from '../types';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';

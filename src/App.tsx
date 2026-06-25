@@ -20,7 +20,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { AdminControlPanel } from './components/AdminControlPanel';
 import { Payment, PaymentStatus, Role, AuditLog, User, Category, BudgetEntry, SystemSettings, Store } from './types';
 import { X, RefreshCw, Loader2, Users, Menu, Building2, BellRing, DollarSign, Plus, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { api } from './services/api';
 import { deleteField } from 'firebase/firestore';
 import { authService } from './services/auth';

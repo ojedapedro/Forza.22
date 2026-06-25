@@ -16,7 +16,7 @@ import {
   CreditCard,
   UserPlus
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Invoice, InvoiceStatus, Client, Store, Role, User } from '../types';
 import { firestoreService } from '../services/firestoreService';
 import { jsPDF } from 'jspdf';

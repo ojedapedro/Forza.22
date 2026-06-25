@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, RefreshCw, Download, Clock, UserCheck, UserX } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Employee, AttendanceRecord } from '../types';
 import { attendanceService } from '../services/attendanceService';
 import { formatDate } from '../utils';

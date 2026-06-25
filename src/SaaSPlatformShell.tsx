@@ -5,7 +5,7 @@ import { Login } from './components/Login';
 import { authService } from './services/auth';
 import { User, Role } from './types';
 import { Loader2, LayoutGrid, DollarSign, Users, Shield, Bell, ChevronLeft, Building2, BarChart3, LogOut, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { APP_LOGO_URL } from './constants';
 
 type AppId = 'hub' | 'core' | 'payroll' | 'analytics';
